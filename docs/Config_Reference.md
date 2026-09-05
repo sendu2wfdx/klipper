@@ -5217,6 +5217,27 @@ dout_pin:
 #   in software.
 ```
 
+#### CS1237
+The CS1237 is a software-configurable 24-bit ADC with a two-wire serial
+interface. Its 640 and 1280 sample-per-second modes are suitable for load-cell
+probing when the MCU is fast enough to service the selected rate.
+```
+[load_cell]
+sensor_type: cs1237
+sclk_pin:
+#   Pin connected to CS1237 SCLK. This parameter must be provided.
+dout_pin:
+#   Bidirectional pin connected to CS1237 DRDY/DOUT. This parameter must be
+#   provided.
+#gain: 128
+#   Valid values are 1, 2, 64 and 128. The default is 128.
+#sample_rate: 640
+#   Valid values are 10, 40, 640 and 1280. The default is 640.
+#reference_output: True
+#   Enable the CS1237 REFOUT pin. Set False only when the hardware uses an
+#   external reference and REFOUT must be disabled. The default is True.
+```
+
 #### ADS1220
 The ADS1220 is a 24 bit ADC supporting up to a 2Khz sample rate configurable in
 software.
@@ -5722,3 +5743,191 @@ All other Klipper micro-controllers use a
 #   to 100000 and changing this value has no effect. The default is
 #   100000. Linux, RP2040 and ATmega support 400000.
 ```
+# Creality F009 compatibility modules
+
+## [io_remap name]
+
+MCU-local filtered GPIO input to output interlock. Both pins must be on the
+same MCU. On shutdown or when disabled, the output returns to
+`default_value`.
+
+```
+[io_remap f009_interlock]
+src_pin:
+remap_pin:
+#enable: True
+#default_value: 1
+#filter_count: 5
+#period: 0.000050
+```
+
+Runtime control: `SET_IO_REMAP REMAP=f009_interlock ENABLE=0|1`.
+
+The unnamed legacy form used by V57 is also accepted:
+
+```
+[io_remap]
+src_pin: PB0
+remap_pin: PA15
+src_pullup: 1
+remap_def: 1
+filterNum: 1
+periodTicks: 0
+```
+
+For this legacy form, unqualified pins are resolved on `nozzle_mcu`, startup is
+disabled, `SET_IOREMAP S=0|1` is registered, and the mapping is automatically
+enabled around X homing moves. Its original N+1 filter and 10us default period
+are preserved while the MCU continues to use the public `set_io_remap` ABI.
+
+## [bl24c16f]
+
+Support for the 2KiB BL24C16F/24C16 I2C EEPROM used by the Creality V57
+power-loss recovery implementation. The device occupies I2C addresses
+`0x50` through `0x57` and is normally connected to a Klipper Linux-process
+MCU.
+
+```
+[mcu rpi]
+serial: /tmp/klipper_host_mcu
+
+[bl24c16f]
+i2c_mcu: rpi
+i2c_bus: i2c.1
+#i2c_speed: 400000
+#write_cycle_time: 0.005
+#   Delay after every EEPROM page write. The default is 5ms.
+```
+
+The module preserves the V57 commands `EEPROM_DEBUG_READ`,
+`EEPROM_DEBUG_WRITE_BYTE`, `EEPROM_DEBUG_WRITE_INT`,
+`EEPROM_DEBUG_WRITE_FLOAT`, `EEPROM_READ`, `EEPROM_WRITE_BYTE`,
+`EEPROM_WRITE_INT`, `EEPROM_WRITE_FLOAT`, `EEPROM_IS_FIRST_USED`,
+`EEPROM_POS`, and `EEPROM_PRINTER_INFO`. A named section may be selected with
+`CHIP=<name>`. The low-level storage driver alone does not implement the
+power-loss recovery policy; that also requires virtual-SD-card state capture
+and safe resume handling supplied by `[power_loss_recovery]`.
+
+## [power_loss_recovery]
+
+创想三维 V57 断电续打 EEPROM 日志的源码兼容层。它依赖 `[virtual_sdcard]`、
+`[bl24c16f]`、`[gcode_move]` 和 `[print_stats]`。当前版本已实现状态记录、文件
+身份校验、状态重建、查询、清除和可选恢复执行器。F009 默认配置把记录与自动
+运动都关闭；只有完成实体机安全验收后才应启用。
+
+```
+[power_loss_recovery]
+#enabled: False
+#automatic_restore: False
+#z_restore_strategy: disabled
+#   disabled：拒绝自动运动。
+#   assume_unchanged：假定断电期间 Z 轴没有滑移，按记录 Z 建立坐标后先抬升。
+#state_path: /mnt/UDISK/printer_data/config/power_loss_recovery.json
+#record_interval: 5
+#metadata_interval: 15
+#min_z: 0.6
+#min_g1: 18
+#writes_per_slot: 255
+#preheat_temp: 185
+#safe_z_lift: 5
+#prime_length: 9.3
+#resume_xy_speed: 3000
+#resume_z_speed: 600
+#slow_percent: 20
+#slow_restore_lines: 200
+#allow_tool_restore: False
+```
+
+提供 `POWER_LOSS_RECOVERY_STATUS`、`POWER_LOSS_RECOVERY_CLEAR`，并兼容原厂
+`pause_resume/check_continue_print_state`、
+`pause_resume/cancel_continue_print` Web API。`SDCARD_PRINT_FILE` 接受原厂
+`ISCONTINUEPRINT=0|1` 参数。状态文件保存路径、大小和 SHA-256；EEPROM 偏移还
+必须位于 UTF-8 G-Code 行边界。自动执行需要同时设置 `enabled: True`、
+`automatic_restore: True` 和 `z_restore_strategy: assume_unchanged`，否则即使记录
+有效也会返回 `safety-locked`。默认不允许恢复含 `Tn` 的多工具文件；该路径等待
+独立 485 工具板协议接入。
+
+## [nozzle_clear]
+
+F009 原厂擦嘴动作的公版 `load_cell_probe` 适配层。配置名和原厂运动几何保持兼容，
+但不再访问 `prtouch_v3` 私有对象；`touch_gain` 会换算成每次公版 `PROBE` 的
+`TRIGGER_FORCE`。在 CS1237 标定、单点探测和清理区坐标完成实机验收前必须保持
+关闭。
+
+```
+[nozzle_clear]
+#enabled: False
+#touch_gain: 1.5
+#trigger_force: 75
+#erase_dir: False
+#random_ofs: 3, 2
+#zmax: 200
+#pre_clear_enable: True
+#pre_clear_probe_pos: 85, 224
+#pre_clear_start: 85, 224
+#pre_clear_temp: 170
+#pre_clear_touch_speed: 15
+#pre_clear_touch_cnt: 3
+#pre_clear_retract_dist: 2
+#clear_enable: True
+#clear_start: 89, 223
+#clear_lenght: 42, 3
+#clear_temp: 170
+#clear_speed: 12000
+#clear_cnt: 8
+#clear_upraise: 1.5
+#clear_closure_temp: 130
+#rub_enable: True
+#rub_start: 75, 223
+#rub_lenght: 6, 2
+#rub_speed: 6000
+#rub_upraise: -0.2
+```
+
+`NOZ_CLEAR` 执行正常序列；模块关闭时会在任何运动前拒绝。原厂拼写
+`clear_lenght`/`rub_lenght` 为保证配置兼容而保留。`NOZ_CLEAR_TEST` 和
+`FORECEZ` 涉及重复碰撞或绕过运动学的强制 Z 移动，当前始终安全锁定。
+
+## [fan_feedback]
+
+Standalone fan tachometer inputs implemented with the standard Klipper pulse
+counter.
+
+```
+[fan_feedback]
+fan0_pin:
+#fan0_ppr: 2
+#fan1_pin:
+#fan1_ppr: 2
+#sample_time: 1.0
+#poll_interval: 0.0015
+#print_delay_time: 5.0
+#current_delay_time: 2.0
+```
+
+Up to `fan4_pin` is supported. Status fields are named `fan0_speed` through
+`fan4_speed` and contain RPM; unconfigured channels remain present with a zero
+value, matching the Creality V57 status shape. `print_delay_time` is the cache
+refresh interval while printing and `current_delay_time` is the interval in
+other states. Use `QUERY_FAN_FEEDBACK` for a console report. The V57-compatible
+alias `QUERY_FAN_CHECK` and webhook endpoint `get_cx_fan_status` are also
+available.
+
+## [tmc_line_check]
+
+Explicit service diagnostic that performs a small `FORCE_MOVE`, reads a TMC
+register, returns the stepper to its starting position, and disables motors.
+It never runs automatically.
+
+```
+[tmc_line_check]
+#register: DRV_STATUS
+#error_mask: 255
+#expected: 0
+#move_distance: 0.5
+#move_velocity: 10.0
+```
+
+Commands are `READ_TMC_REGISTER STEPPER=x REGISTER=DRV_STATUS` and
+`CHECK_MOTOR_LINE STEPPER=x`. The latter requires `[force_move]` with force
+move explicitly enabled and must only be used with clearance around the axis.

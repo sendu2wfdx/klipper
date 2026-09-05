@@ -19,7 +19,7 @@ OBJCOPY=$(CROSS_PREFIX)objcopy
 OBJDUMP=$(CROSS_PREFIX)objdump
 STRIP=$(CROSS_PREFIX)strip
 CPP=cpp
-PYTHON=python3
+PYTHON?=python3
 
 # Source files
 src-y =
@@ -33,7 +33,8 @@ CFLAGS := -iquote $(OUT) -iquote src -iquote $(OUT)board-generic/ \
 		-std=gnu11 -O2 -MD -Wall \
 		-Wold-style-definition $(call cc-option,$(CC),-Wtype-limits,) \
     -ffunction-sections -fdata-sections -fno-delete-null-pointer-checks
-CFLAGS += -flto=auto -fwhole-program -fno-use-linker-plugin -ggdb3
+LTO_FLAGS ?= -flto=auto
+CFLAGS += $(LTO_FLAGS) -fwhole-program -fno-use-linker-plugin -ggdb3
 
 OBJS_klipper.elf = $(patsubst %.c, $(OUT)src/%.o,$(src-y))
 OBJS_klipper.elf += $(OUT)compile_time_request.o
@@ -71,7 +72,7 @@ $(OUT)%.ld: %.lds.S $(OUT)autoconf.h
 $(OUT)klipper.elf: $(OBJS_klipper.elf)
 	@echo "  Linking $@"
 	$(Q)$(CC) $(OBJS_klipper.elf) $(CFLAGS_klipper.elf) -o $@
-	$(Q)scripts/check-gcc.sh $@ $(OUT)compile_time_request.o
+	$(Q)bash scripts/check-gcc.sh $@ $(OUT)compile_time_request.o
 
 ################ Compile time requests
 

@@ -20,6 +20,8 @@ choice
         bool "LPC176x"
     config MACH_STM32
         bool "STMicroelectronics STM32"
+    config MACH_GD32
+        bool "GigaDevice GD32"
     config MACH_HC32F460
         bool "Huada Semiconductor HC32F460"
     config MACH_RPXXXX
@@ -39,6 +41,7 @@ source "src/atsam/Kconfig"
 source "src/atsamd/Kconfig"
 source "src/lpc176x/Kconfig"
 source "src/stm32/Kconfig"
+source "src/gd32/Kconfig"
 source "src/hc32f460/Kconfig"
 source "src/rp2040/Kconfig"
 source "src/pru/Kconfig"
@@ -164,6 +167,10 @@ config WANT_HX71X
     bool
     depends on HAVE_GPIO
     default y
+config WANT_CS1237
+    bool
+    depends on HAVE_GPIO
+    default y
 config WANT_ADS131M0X
     bool
     depends on WANT_SPI
@@ -183,7 +190,7 @@ config WANT_SENSOR_ANGLE
 config NEED_SENSOR_BULK
     bool
     depends on WANT_ADXL345 || WANT_LIS2DW || WANT_BMI160 || WANT_MPU9250 || WANT_ICM20948 \
-        || WANT_HX71X || WANT_ADS1220 || WANT_ADS131M0X || WANT_LDC1612 || WANT_SENSOR_ANGLE
+        || WANT_HX71X || WANT_CS1237 || WANT_ADS1220 || WANT_ADS131M0X || WANT_LDC1612 || WANT_SENSOR_ANGLE
     default y
 config WANT_TRIGGER_ANALOG
     bool
@@ -256,6 +263,9 @@ config WANT_THERMOCOUPLE
 config WANT_HX71X
     bool "Support HX711 and HX717 ADC chips"
     depends on HAVE_GPIO
+config WANT_CS1237
+    bool "Support CS1237 ADC chips"
+    depends on HAVE_GPIO
 config WANT_ADS131M0X
     bool "Support ADS 131M02/M04 ADC chips"
     depends on WANT_SPI
@@ -276,6 +286,36 @@ config WANT_TRIGGER_ANALOG
     bool "Support for homing/probing events using analog sensors"
     depends on WANT_ADC || WANT_HX71X || WANT_ADS1220 || WANT_ADS131M0X || WANT_LDC1612
 endmenu
+
+choice
+    prompt "Archived Creality PRTouch MCU protocol"
+    optional
+    depends on HAVE_GPIO && HAVE_GPIO_ADC
+
+config WANT_PRTOUCH_V2_COMPAT
+    bool "Support official Creality PRTouch V2 MCU protocol"
+    select WANT_ADC
+
+config WANT_PRTOUCH_V3_COMPAT
+    bool "Support archived Creality PRTouch V3 MCU protocol"
+    select WANT_ADC
+
+endchoice
+
+config WANT_CREALITY_485_CODEC
+    bool "Support archived Creality RS-485 framing"
+    help
+        Build the recovered F7/address/length/state/function/data/CRC8
+        framing codec. This option intentionally contains no custom
+        toolboard register map or Modbus behavior.
+
+config WANT_CREALITY_485_SLAVE
+    bool "Support archived Creality RS-485 slave state machine"
+    select WANT_CREALITY_485_CODEC
+    help
+        Build the recovered discovery, address management, online query,
+        and F0 update responder core. Board UART and flash operations are
+        supplied separately so the verified protocol is platform independent.
 
 # Generic configuration options for CANbus
 config CANSERIAL

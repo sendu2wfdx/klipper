@@ -390,3 +390,42 @@ stepper_shutdown(void)
     }
 }
 DECL_SHUTDOWN(stepper_shutdown);
+
+// Compatibility accessors used by Creality PRTouch V3 step/APAX sampling.
+// These functions only observe the standard Klipper stepper state.
+int32_t
+step_prtouch_get_pos(int32_t step_oid)
+{
+    struct stepper *s = stepper_oid_lookup(step_oid);
+    irq_disable();
+    uint32_t position = stepper_get_position(s);
+    irq_enable();
+    return (int32_t)(position - POSITION_BIAS);
+}
+
+uint32_t
+step_prtouch_get_ivt(int32_t step_oid)
+{
+    struct stepper *s = stepper_oid_lookup(step_oid);
+    return s->count ? s->interval : 0;
+}
+
+int32_t
+step_prtouch_get_pos_v65(int32_t step_oid)
+{
+    struct stepper *s = stepper_oid_lookup(step_oid);
+    uint32_t position = s->position;
+    uint32_t count = s->count;
+    uint8_t flags = s->flags;
+    position -= flags & SF_SINGLE_SCHED ? count : count / 2;
+    if (position & 0x80000000)
+        position = -position;
+    return (int32_t)(position - POSITION_BIAS);
+}
+
+int32_t
+step_prtouch_get_cnt(int32_t step_oid)
+{
+    struct stepper *s = stepper_oid_lookup(step_oid);
+    return s->count;
+}

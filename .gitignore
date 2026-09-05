@@ -4,3 +4,9 @@ out
 .config
 .config.old
 klippy/.version
+build-gd32*/
+*.config.old
+.pytest_cache/
+__pycache__/
+_usb_*.out
+_usb_*.err

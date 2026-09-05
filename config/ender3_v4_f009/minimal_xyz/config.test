@@ -1,0 +1,7 @@
+# Offline parser/startup test for the minimal F009 motion configuration.
+CONFIG printer.cfg
+DICTIONARY build-gd32/f009-main/klipper.dict leveling_mcu=build-gd32/e230-pa910/klipper.dict
+
+STATUS
+QUERY_ENDSTOPS
+ACCELEROMETER_QUERY CHIP=leveling

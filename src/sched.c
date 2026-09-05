@@ -249,7 +249,17 @@ run_tasks(void)
                 // Sleep processor (only run timers) until tasks woken
                 SchedStatus.tasks_status = SchedStatus.tasks_busy = TS_IDLE;
                 do {
+#if CONFIG_WANT_PRTOUCH_V2_COMPAT || CONFIG_WANT_PRTOUCH_V3_COMPAT
+                    // Factory K1 V1/V2 and F009 V3 continuously poll their
+                    // shared prtouch_task() entry while ordinary Klipper would
+                    // sleep.  The factory protocol objects do not register a
+                    // DECL_TASK entry, so keep this as their only dispatcher.
+                    asm volatile("cpsie i" ::: "memory");
+                    extern void prtouch_task(void);
+                    prtouch_task();
+#else
                     irq_wait();
+#endif
                 } while (SchedStatus.tasks_status != TS_REQUESTED);
             }
             irq_enable();

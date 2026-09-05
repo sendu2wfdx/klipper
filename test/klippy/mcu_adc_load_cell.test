@@ -1,0 +1,3 @@
+DICTIONARY build-gd32/test-cc-usb/klipper.dict
+CONFIG mcu_adc_load_cell.cfg
+
