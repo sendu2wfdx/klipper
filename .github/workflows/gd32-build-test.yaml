@@ -1,0 +1,62 @@
+# Build and test the downstream GD32 targets on every branch update.
+name: GD32 build and tests
+
+on:
+  push:
+    branches:
+      - gd32-f009
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup cache
+        uses: actions/cache@v5
+        with:
+          path: ci_cache
+          key: ${{ runner.os }}-gd32-${{ hashFiles('scripts/ci-install.sh') }}
+
+      - name: Prepare build environment
+        run: ./scripts/ci-install.sh
+
+      - name: Run downstream unit tests
+        run: |
+          ci_build/python-env/bin/pip install pytest
+          ci_build/python-env/bin/python -m pytest -q -p no:cacheprovider test/test_*.py
+
+      - name: Build GD32 and Linux-process targets
+        env:
+          BUILD_ROOT: ${{ runner.temp }}/gd32-build
+          JOBS: 2
+        run: >-
+          ./scripts/build-gd32-matrix.sh
+          f009-main
+          f009-main-factory
+          f009-toolhead
+          f009-toolhead-factory
+          f009-can
+          e230-pa23
+          e230-pa910
+          e230-pa910-factory
+          k1-leveling-v2
+          test-cc-serial
+          test-cc-usb
+          test-cc-usb-dbuf
+          test-cc-usb-dbuf-prtouch-v2-adc
+          linuxprocess
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gd32-firmware
+          path: |
+            ${{ runner.temp }}/gd32-build/**/klipper.bin
+            ${{ runner.temp }}/gd32-build/**/klipper.elf
+            ${{ runner.temp }}/gd32-build/**/klipper.dict
