@@ -88,8 +88,8 @@ def _elf_layout(path):
         raise SystemExit("%s: expected exactly one .text section" % path)
     text = text_sections[0]
     _name, section_type, section_flags, text_vma, text_offset, text_size = text[:6]
-    if section_type != 1 or not section_flags & 0x2 or not section_flags & 0x4:
-        raise SystemExit("%s: .text is not an allocated executable section" % path)
+    if section_type != 1 or not section_flags & 0x2:
+        raise SystemExit("%s: .text is not an allocated program section" % path)
     text_data = _checked_range(data, text_offset, text_size, ".text data")
 
     load_addresses = []
@@ -97,9 +97,12 @@ def _elf_layout(path):
         offset = phoff + index * phentsize
         raw = _checked_range(data, offset, 32, "program header %d" % index)
         (segment_type, segment_offset, segment_vma, segment_lma,
-         segment_file_size, _segment_memory_size, _segment_flags,
+         segment_file_size, _segment_memory_size, segment_flags,
          _segment_align) = struct.unpack_from("<IIIIIIII", raw)
-        if segment_type != 1:
+        # Older GNU ARM linkers derive the output .text section flags from the
+        # vector-table input and may omit SHF_EXECINSTR there.  The executable
+        # property that matters at load time is PF_X on its PT_LOAD segment.
+        if segment_type != 1 or not segment_flags & 0x1:
             continue
         delta = text_vma - segment_vma
         if (delta < 0 or delta + text_size > segment_file_size

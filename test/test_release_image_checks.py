@@ -25,7 +25,8 @@ def make_application(profile, layout="factory"):
     return bytes(image)
 
 
-def make_elf(image, entry, text_vma=None, text_lma=None):
+def make_elf(image, entry, text_vma=None, text_lma=None, text_flags=0x6,
+             segment_flags=5):
     """Create the smallest ELF32 needed by the application release gate."""
     if text_vma is None:
         text_vma = entry
@@ -44,12 +45,13 @@ def make_elf(image, entry, text_vma=None, text_lma=None):
         52, 32, 1, 40, 3, 2)
     struct.pack_into(
         "<IIIIIIII", data, 52,
-        1, text_offset, text_vma, text_lma, len(text), len(text), 5, 4)
+        1, text_offset, text_vma, text_lma, len(text), len(text),
+        segment_flags, 4)
     data[text_offset:text_offset + len(text)] = text
     data[names_offset:names_offset + len(names)] = names
     struct.pack_into(
         "<IIIIIIIIII", data, section_offset + 40,
-        1, 1, 0x6, text_vma, text_offset, len(text), 0, 0, 4, 0)
+        1, 1, text_flags, text_vma, text_offset, len(text), 0, 0, 4, 0)
     struct.pack_into(
         "<IIIIIIIIII", data, section_offset + 80,
         7, 3, 0, 0, names_offset, len(names), 0, 0, 1, 0)
@@ -84,6 +86,28 @@ def test_katapult_application_gate_checks_its_actual_base(tmp_path):
     validate_app(path, "nozzle", "katapult", elf_path)
     with pytest.raises(SystemExit, match="outside factory application range"):
         validate_app(path, "nozzle", "factory", elf_path)
+
+
+def test_gate_accepts_vector_table_text_without_exec_flag(tmp_path):
+    # Ubuntu 22.04's ARM GNU ld marks the vector-only .text as allocatable but
+    # not executable; its containing PT_LOAD remains executable.
+    image = make_application("main")
+    image_path = tmp_path / "klipper.bin"
+    elf_path = tmp_path / "klipper.elf"
+    image_path.write_bytes(image)
+    elf_path.write_bytes(make_elf(image, 0x08003000, text_flags=0x2))
+    validate_app(image_path, "main", "factory", elf_path)
+
+
+def test_gate_rejects_text_without_an_executable_load_segment(tmp_path):
+    image = make_application("main")
+    image_path = tmp_path / "klipper.bin"
+    elf_path = tmp_path / "klipper.elf"
+    image_path.write_bytes(image)
+    elf_path.write_bytes(make_elf(
+        image, 0x08003000, text_flags=0x2, segment_flags=4))
+    with pytest.raises(SystemExit, match="not mapped by a loadable segment"):
+        validate_app(image_path, "main", "factory", elf_path)
 
 
 @pytest.mark.parametrize(
