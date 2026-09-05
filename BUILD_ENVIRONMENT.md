@@ -11,6 +11,19 @@
 
 GD32 MCU 固件使用 `T113` WSL 内的原生 GCC 9；全志 Linux 用户态继续使用 SDK 自带的 `arm-openwrt-linux-gnueabi-gcc`，两者用途不同。不得把 Windows 版 ARM GCC 和 WSL 的 `make` 混合使用，也不使用 `Klipper` WSL 中会改变链接结果的 GCC 13。
 
+## Windows/WSL 共享工作区换行约定
+
+此仓库同时由 Windows 和 `T113` WSL 访问，克隆后应在仓库内设置：
+
+```powershell
+git config --local core.autocrlf false
+```
+
+仓库保留公版 Klipper 及其第三方芯片库原有的换行形式，不执行全仓库
+`git add --renormalize .`，也不提交覆盖全仓库的强制 LF 属性。这样既避免 Windows
+与 WSL 之间出现整库伪差异，也不会为后续同步公版 Klipper 制造数十万行无功能
+变化的冲突。新增及修改的自有 C、Python、Shell 和配置文件统一使用 LF。
+
 ## Windows 一键编译
 
 ```powershell
