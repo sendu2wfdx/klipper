@@ -5743,7 +5743,7 @@ All other Klipper micro-controllers use a
 #   to 100000 and changing this value has no effect. The default is
 #   100000. Linux, RP2040 and ATmega support 400000.
 ```
-# Creality F009 compatibility modules
+# Creality F009 extensions
 
 ## [io_remap name]
 

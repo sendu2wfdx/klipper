@@ -51,28 +51,27 @@
 
 ## 固件布局
 
-- 主板使用公版 Katapult：`f009_gd32f303_serial.config`，
-  Klipper 应用入口为 `0x08002000`。
-- 主板暂时保留原厂 Bootloader：
-  `f009_gd32f303_serial_factory12k.config`，应用入口为 `0x08003000`。
-- 喷头板使用公版 Katapult：`f009_toolhead_gd32f303cb_katapult8k.config`。
-- 喷头板保留原厂 12 KiB Bootloader：`f009_toolhead_gd32f303cb_factory12k.config`，应用入口 `0x08003000`。
-- 量产调平板使用公版 Katapult：`gd32e230f8_serial_pa9_pa10.config`，应用入口 `0x08002000`。
-- 量产调平板保留原厂 12 KiB Bootloader：`gd32e230f8_serial_pa9_pa10_factory12k.config`，应用入口 `0x08003000`。
-- `gd32e230f8_serial_pa2_pa3.config` 仅作为 GD32E230平台开发/改板变体保留。
+- 正式主板配置：`config/f009_main.config`。
+- 正式喷头配置：`config/f009_nozzle.config`。
+- 正式床板配置：`config/f009_bed.config`。
+- T113 Linux-process MCU：`config/f009_linux.config`。
+
+三块 MCU 默认从 `0x08003000` 运行，保留生产板现有的 12 KiB 原厂 Bootloader。
+构建过程还会生成一份协议兼容的独立复刻 BL；它不是原厂二进制，不应在普通 APP
+升级时写入。设置 `APP_LAYOUT=katapult` 可把同三份配置临时转换为 8 KiB Katapult
+布局，输出到 `build-gd32/katapult/`。`gd32e230f8_serial_pa2_pa3.config` 等长名称
+配置只作为平台开发/改板变体保留。
 
 ## 当前验证结果
 
-- 六个常用板级固件目标均可使用固定 GCC 9 工具链完整编译（主板、喷头、
-  热床两种串口候选、F303CC 串口测试和 USB CDC 测试）。
-- 本目录配置已使用三份板级 MCU 字典和一份 T113 Linux-process MCU 字典
-  通过 Klippy 完整启动解析测试；8 KiB 与原厂 12 KiB 两套布局均覆盖。
+- 正式 `main/nozzle/bed/linux` 四目标可由固定 T113 构建入口统一生成；开发板、
+  USB、CAN 和其它串口候选不进入正式发布矩阵。
+- 本目录配置使用三份板级 MCU 字典和一份 T113 Linux-process MCU 字典执行
+  Klippy 完整启动解析测试；12 KiB 正式布局和 8 KiB Katapult 开发布局分别构建。
 - PRTouch V3 离线算法测试和协议 ABI 源码测试各 4 项均通过；喷头固件
   字典已包含全部压力、STEP、APAX 命令及 `resault_*` 返回消息。
 - 该测试证明配置、引脚名称和 MCU 命令可以装载，不代表尚未验证的
   电气极性、压力阈值或热控参数已经具备上机安全性。
-- 公版主机源码测试当前为 `128 passed, 1 skipped`；其中 19 项覆盖断电续打与
-  virtual-SD 生命周期，
-  6 项覆盖擦嘴禁用门、等效触发力、回撤坐标修正、完整动作合同、危险命令锁和异常收尾。
-  新增 4 项覆盖原厂 PRTouch 对象的状态块、片上 ADC 导入、502 次轮询常量和
-  CS1237/ADC 双分支反汇编证据。
+- 自动测试覆盖断电续打、virtual-SD 生命周期、擦嘴安全门、触发力和回撤、
+  PRTouch 状态块与压缩流、片上 ADC 次级路径，以及 CS1237/ADC 双分支证据；
+  不在文档中固定会随提交变化的通过项数量。

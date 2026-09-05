@@ -1,0 +1,2 @@
+CONFIG ../../config/ender3_v4_f009/minimal_xyz/printer.cfg
+DICTIONARY build-gd32/main/klipper.dict leveling_mcu=build-gd32/bed/klipper.dict

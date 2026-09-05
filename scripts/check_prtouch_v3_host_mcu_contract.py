@@ -81,7 +81,7 @@ def verify(host_path, dictionary_path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("host", type=Path,
-                        help="prtouch_v3_wrapper.py 路径")
+                        help="PRTouch V3 主机模块路径")
     parser.add_argument("dictionary", type=Path,
                         help="已构建的 klipper.dict 路径")
     args = parser.parse_args()

@@ -37,12 +37,12 @@ def test_prtouch_v2_and_v3_are_mutually_exclusive_build_options():
     kconfig = (ROOT / "src" / "Kconfig").read_text(encoding="utf-8")
     makefile = (ROOT / "src" / "Makefile").read_text(encoding="utf-8")
     choice = kconfig[kconfig.index(
-        'prompt "Archived Creality PRTouch MCU protocol"'):]
+        'prompt "Creality PRTouch MCU protocol"'):]
     choice = choice[:choice.index("endchoice")]
-    assert "config WANT_PRTOUCH_V2_COMPAT" in choice
-    assert "config WANT_PRTOUCH_V3_COMPAT" in choice
-    assert "CONFIG_WANT_PRTOUCH_V2_COMPAT" in makefile
-    assert "CONFIG_WANT_PRTOUCH_V3_COMPAT" in makefile
+    assert "config HAVE_PRTOUCH_V1_V2" in choice
+    assert "config HAVE_PRTOUCH_V3" in choice
+    assert "CONFIG_HAVE_PRTOUCH_V1_V2" in makefile
+    assert "CONFIG_HAVE_PRTOUCH_V3" in makefile
     assert "prtouch_v2_task_shim.c" not in makefile
 
 
@@ -51,21 +51,18 @@ def test_factory_idle_dispatch_does_not_modify_official_source():
     scheduler = (ROOT / "src" / "sched.c").read_text(encoding="utf-8")
     assert "void prtouch_task(void)" in source
     assert "DECL_TASK(prtouch_task)" not in source
-    assert "CONFIG_WANT_PRTOUCH_V2_COMPAT || " \
-           "CONFIG_WANT_PRTOUCH_V3_COMPAT" in scheduler
+    assert "CONFIG_HAVE_PRTOUCH_V1_V2 || " \
+           "CONFIG_HAVE_PRTOUCH_V3" in scheduler
     assert "prtouch_task();" in scheduler
 
 
-def test_prtouch_v2_adc_cct6_build_target_is_explicit():
+def test_prtouch_v2_adc_cct6_development_config_is_explicit():
     config = (ROOT / "config" /
               "gd32f303cc_test_usb_pa11_pa12_noboot_dbuf_prtouch_v2_adc.config"
               ).read_text(encoding="utf-8")
-    matrix = (ROOT / "scripts" / "build-gd32-matrix.sh").read_text(
-        encoding="utf-8")
-    assert "CONFIG_WANT_PRTOUCH_V2_COMPAT=y" in config
-    assert "# CONFIG_WANT_PRTOUCH_V3_COMPAT is not set" in config
+    assert "CONFIG_HAVE_PRTOUCH_V1_V2=y" in config
+    assert "# CONFIG_HAVE_PRTOUCH_V3 is not set" in config
     assert "CONFIG_WANT_ADC=y" in config
-    assert "test-cc-usb-dbuf-prtouch-v2-adc" in matrix
 
 
 def test_k1_leveling_e230_target_uses_factory_transport_and_v2_only():
@@ -78,8 +75,8 @@ def test_k1_leveling_e230_target_uses_factory_transport_and_v2_only():
             "CONFIG_FLASH_APPLICATION_ADDRESS=0x08003000",
             "CONFIG_GD32_SERIAL_USART0_PA9_PA10=y",
             "CONFIG_SERIAL_BAUD=230400",
-            "CONFIG_WANT_PRTOUCH_V2_COMPAT=y",
-            "# CONFIG_WANT_PRTOUCH_V3_COMPAT is not set"):
+            "CONFIG_HAVE_PRTOUCH_V1_V2=y",
+            "# CONFIG_HAVE_PRTOUCH_V3 is not set"):
         assert setting in config
     gd32_kconfig = (ROOT / "src" / "gd32" / "Kconfig").read_text(
         encoding="utf-8")
@@ -97,10 +94,6 @@ def test_k1_leveling_e230_target_uses_factory_transport_and_v2_only():
         "config NEED_SENSOR_BULK"):root_kconfig.index(
         "config WANT_TRIGGER_ANALOG")]
     assert "WANT_CS1237" in bulk_dep
-    matrix = (ROOT / "scripts" / "build-gd32-matrix.sh").read_text(
-        encoding="utf-8")
-    assert 'k1-leveling-v2) build_one "$target" ' in matrix
-    assert "check_prtouch_v2_dictionary.py" in matrix
 
 
 def test_prtouch_v2_dictionary_checker_has_full_contract():

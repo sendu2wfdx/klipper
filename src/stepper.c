@@ -391,7 +391,7 @@ stepper_shutdown(void)
 }
 DECL_SHUTDOWN(stepper_shutdown);
 
-// Compatibility accessors used by Creality PRTouch V3 step/APAX sampling.
+// Read-only accessors used by Creality PRTouch V3 step/APAX sampling.
 // These functions only observe the standard Klipper stepper state.
 int32_t
 step_prtouch_get_pos(int32_t step_oid)

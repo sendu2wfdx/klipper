@@ -72,9 +72,9 @@ Creality 源码中的 GD32 `spi.c` 只返回空配置，传输函数直接返回
 
 ## 构建配置
 
-- `config/gd32e230f8_serial_pa2_pa3.config`
-- `config/gd32e230f8_serial_pa9_pa10.config`
-- `config/gd32e230f8_serial_pa9_pa10_factory12k.config`（量产板原厂 BL 保留方案）
+- `config/f009_bed.config`（F009 正式目标，PA9/PA10，12 KiB 布局）
+- `config/gd32e230f8_serial_pa2_pa3.config`（8 KiB 平台开发变体）
+- `config/gd32e230f8_serial_pa9_pa10.config`（8 KiB Katapult 开发变体）
 - `config/k1_leveling_gd32e230x8_factory12k_prtouch_v2.config`（K1 四通道
   压力调平板，V1/V2 共用 MCU 协议）
 
@@ -83,7 +83,10 @@ Creality 源码中的 GD32 `spi.c` 只返回空配置，传输函数直接返回
 - `config/gd32e230f8_serial_pa2_pa3_noboot.config`
 - `config/gd32e230f8_serial_pa9_pa10_noboot.config`
 
-默认两套配置当前选择 8 KiB Katapult，应用入口 `0x08002000`。另保留明确命名的 `*_noboot.config` 用于纯平台验证。量产板若保留原厂 Bootloader，则必须使用 `gd32e230f8_serial_pa9_pa10_factory12k.config`，应用入口为 `0x08003000`。原机 `CR0NN200360C10_gd32e230_64K_backup_20260831.bin` 在偏移 `0x9154` 含可解压的 Klipper数据字典，其中明确记录：
+正式 F009 配置使用 12 KiB 布局，应用入口为 `0x08003000`；两份通用开发配置
+仍使用 8 KiB Katapult。另保留明确命名的 `*_noboot.config` 用于纯平台验证。
+原机 `CR0NN200360C10_gd32e230_64K_backup_20260831.bin` 在偏移 `0x9154`
+含可解压的 Klipper 数据字典，其中明确记录：
 
 ```text
 MCU=gd32e230x8
@@ -106,7 +109,7 @@ SERIAL_BAUD=230400
 2026-09-05 新增的 K1 V1/V2 目标也已在 T113 中完成冷构建：
 `text/data/bss=30430/100/2600`，BIN 长度 30880，SHA-256
 `5603cb9c752ef3c390f0394ba32289706e130fe901a607c87d5c28e2259443d8`。消息字典与 K1
-官方 V1、V2 两份主机包装器均匹配 12/12 条命令、9/9 条响应；尚缺四通道调平板实物
+官方 V1、V2 两份主机实现均匹配 12/12 条命令、9/9 条响应；尚缺四通道调平板实物
 验证，不能与 F009 的单纯 Y 加速度计床身小板混为一块硬件。
 
 本轮 BIN SHA-256：
@@ -122,8 +125,8 @@ SERIAL_BAUD=230400
 ## F009 V57 源码替换实机结果（2026-09-04）
 
 F009 量产机上的 E230 仅承载 Y 向 LIS2DW 加速度计，不负责热床加热或测温。本次实测
-使用 `../Klipper57_Source_Rebuild/src/configs/F018_bed0_110_G21_defconfig` 构建的 V57
-等价源码应用，而不是上表中用于通用上游移植验证的较大镜像。实刷文件为：
+使用 V57 等价源码应用；该硬件目标现已归一为本仓库的 `config/f009_bed.config`，
+不是上表中用于通用上游移植验证的较大镜像。实刷文件为：
 
 ```text
 ../builds/bed-e230-live-candidate-20260904/out/klipper.bin
@@ -172,8 +175,9 @@ GD32E230 的厂商器件头文件和外设库中没有 USB/USBFS 控制器定义
 
 ```powershell
 cd "D:\Documents\ChatGPT\创想三维\mcu\Official_Klipper_GD32"
-.\build-gd32.ps1 e230-pa23
-.\build-gd32.ps1 e230-pa910
+.\build-ender3-v4.ps1 bed
 ```
 
-固定使用 `T113` WSL 内的 GCC 9.2.1 和 GNU Make 4.2.1，产物位于 `build-gd32/e230-pa23/` 和 `build-gd32/e230-pa910/`。详见 `BUILD_ENVIRONMENT.md`。
+固定使用 `T113` WSL 内的 GCC 9.2.1 和 GNU Make 4.2.1，正式产物位于
+`build-gd32/bed/`。8 KiB 开发布局通过 `APP_LAYOUT=katapult` 显式生成到
+`build-gd32/katapult/bed/`。详见 `BUILD_ENVIRONMENT.md`。

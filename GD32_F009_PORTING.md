@@ -15,7 +15,7 @@
 - 增加 GD32 架构入口、芯片型号、时钟、Flash/RAM 和启动偏移配置。
 - 当前支持 GD32F303xB、xC、xE，F009 使用 `GD32F303xC`。
 - 系统时钟为 120 MHz。
-- 平台同时支持原厂 12 KiB Bootloader（应用入口 `0x08003000`）和当前 Katapult 8 KiB 布局（应用入口 `0x08002000`）。默认一键构建已切换为 Katapult 布局。
+- 平台同时支持原厂 12 KiB Bootloader（应用入口 `0x08003000`）和 Katapult 8 KiB 布局（应用入口 `0x08002000`）。正式一键构建默认使用原厂 12 KiB 布局；只有显式设置 `APP_LAYOUT=katapult` 才生成 8 KiB APP。
 - 保留原厂固件需要的尾部 CRC16 生成流程；自动刷写仍禁用，避免误写原厂板卡。
 - 已接入 GPIO、ADC、SPI、I²C 和串口底层。I²C 已替换创想仓库的空实现，支持起始/重复起始、读写、STOP、NACK 和超时返回；当前仍属“编译验证”，需要实机电气和传输测试。
 
@@ -78,7 +78,8 @@ F303 使用浮空输入 MISO 和推挽复用 MOSI/SCK；E230 使用 AF0、无内
 - 通信接口：USART1。
 - 引脚：PA2（TX）、PA3（RX）。
 - 波特率：230400。
-- 配置文件：`config/f009_gd32f303_serial.config`。
+- 正式配置：`config/f009_main.config`。8 KiB 平台开发配置另保留为
+  `config/f009_gd32f303_serial.config`。
 
 ### USB CDC 补全
 
@@ -105,26 +106,16 @@ GD32F303 CAN0 已接入官方 Klipper `canserial/canbus` 协议层，支持 PA11
 
 CAN 需要独立 CAN 收发器、CANH/CANL 和正确终端电阻；原厂485接口的收发器和物理层不能直接复用。详细实现及测试要求见 `GD32F303_CAN_PORTING.md`。
 
-## 构建结果
+## 正式构建结果
 
-| 版本 | text | data | bss | BIN SHA-256 | CRC16 |
-|---|---:|---:|---:|---|---|
-| F009 USART1（Katapult 8 KiB） | 34198 | 52 | 1048 | `396464ca31599186e16904ad1c61e911dd55d7c3bad679075be837ada6fbee4e` | 无（Katapult 裸 BIN） |
-| GD32F303 USB CDC（Katapult 8 KiB） | 35846 | 52 | 1168 | `b575d433ed88e1f0f784650edb2b1817c6ba00fe4bcbe8fd6b2b94d6878e22a7` | 无（Katapult 裸 BIN） |
-| GD32F303 CAN0 PB8/PB9（1 Mbps，Katapult 8 KiB） | 35766 | 52 | 1292 | `99651e72e52d7a7f6aad604b0d32df41cb4e9f187620ebe4f68f1d240ce65137` | 无（Katapult 裸 BIN） |
+当前正式入口为 `scripts/build-ender3-v4.sh`，目标名固定为 `main`、`nozzle`、
+`bed`、`linux`。三块 MCU 默认使用 12 KiB 原厂兼容布局；应用分别位于
+`build-gd32/main/`、`nozzle/`、`bed/`，当次体积、CRC16 和 SHA-256 统一写入
+`build-gd32/reports/build-report.txt`，不再把会随源码变化的旧哈希写成当前基线。
 
-启用自主 PRTouch V3 兼容层的 F009 工具头构建位于
-`build-gd32/f009-toolhead/klipper.bin`，当前 `text/data/bss=41418/52/9068`，
-SHA-256 为
-`9b5aafb877497ff3761c21d9ee32c43d5970c0e62687f6a7e75fe1cc502f63c3`。
-该镜像面向 8 KiB Katapult、USART1 PA2/PA3、230400 baud。保留原厂 12 KiB
-Bootloader 的独立目标为 `f009-toolhead-factory`：入口 `0x08003000`，版本
-`noz0_019_000`，长度 `41784 (0xA338)`，CRC16 `0x6B72`，SHA-256
-`35599ceafb1fa67572c502313044f2a9cf267398ce5ab9911c928c090c0a1f94`。
-两种镜像功能源码相同，但链接入口和封装不同，不可互换。
-
-上述工具头值使用固定版本串 `gd32-source-rebuild`，对应 2026-09-05 的
-PRTouch 下降沿修正后 T113/GCC 9 构建。Katapult 应用 BIN 不使用原厂 CRC16 封装。
+设置 `APP_LAYOUT=katapult` 后，三块 APP 改从 `0x08002000` 链接并输出到
+`build-gd32/katapult/`。两种镜像功能源码相同，但链接入口和封装不同，不可互换。
+USB、CAN、CCT6 和 PA2/PA3 E230 配置继续作为开发变体保留，不属于正式发布矩阵。
 
 ### GPIO 重构（2026-08-30）
 
@@ -170,7 +161,8 @@ PRTouch 下降沿修正后 T113/GCC 9 构建。Katapult 应用 BIN 不使用原�
 已验证：
 
 - 串口、USB、CAN 三套 F303 配置均能在现有 ARM GCC 9 工具链下完成编译、链接及 BIN 生成。
-- 默认 F009 串口/USB/CAN 版使用 8 KiB Katapult 偏移和普通 Katapult 应用 BIN，不附加原厂 CRC16 封装。原厂 12 KiB/CRC16 路线仅保留为迁移前兼容配置。
+- 正式 F009 主板、喷头和床板使用 12 KiB 原厂兼容偏移及 CRC16 应用封装；
+  8 KiB Katapult 只由 `APP_LAYOUT=katapult` 显式生成。
 - USB 版使用当前官方 Klipper 的 CDC 消息层，而不是 Creality 未完成的旧 USB 文件。
 
 仍需实机验证：

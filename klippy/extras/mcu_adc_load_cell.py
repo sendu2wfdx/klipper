@@ -1,7 +1,7 @@
 # MCU internal ADC adapter for the public load_cell_probe stack
 #
 # This is an opt-in secondary/coarse sensor path.  It intentionally remains
-# separate from the factory PRTouch V3 compatibility implementation.
+# separate from the Creality PRTouch V3 implementation.
 #
 # Copyright (C) 2026
 # This file may be distributed under the terms of the GNU GPLv3 license.

@@ -3,12 +3,12 @@ import unittest
 
 
 SOURCE = (pathlib.Path(__file__).parents[1] / "src" /
-          "prtouch_v3_compat.c").read_text(encoding="utf-8")
+          "prtouch_v3.c").read_text(encoding="utf-8")
 SCHED = (pathlib.Path(__file__).parents[1] / "src" /
          "sched.c").read_text(encoding="utf-8")
 
 
-class PRTouchV3CompatSourceTest(unittest.TestCase):
+class PRTouchV3SourceTest(unittest.TestCase):
     def test_original_commands_are_preserved(self):
         commands = (
             "config_prtouch_pres", "start_prtouch_pres",
@@ -46,15 +46,25 @@ class PRTouchV3CompatSourceTest(unittest.TestCase):
 
     def test_factory_pressure_task_keeps_polling_while_scheduler_is_idle(self):
         self.assertIn(
-            "#if CONFIG_WANT_PRTOUCH_V2_COMPAT || "
-            "CONFIG_WANT_PRTOUCH_V3_COMPAT", SCHED)
-        self.assertIn('asm volatile("cpsie i" ::: "memory")', SCHED)
-        self.assertIn("prtouch_task();", SCHED)
+            "#if CONFIG_HAVE_PRTOUCH_V1_V2 || "
+            "CONFIG_HAVE_PRTOUCH_V3", SCHED)
+        idle_dispatch = SCHED[SCHED.index("#if CONFIG_HAVE_PRTOUCH_V1_V2"):
+                              SCHED.index("#else", SCHED.index(
+                                  "#if CONFIG_HAVE_PRTOUCH_V1_V2"))]
+        self.assertLess(idle_dispatch.index("irq_enable();"),
+                        idle_dispatch.index("irq_poll();"))
+        self.assertLess(idle_dispatch.index("irq_poll();"),
+                        idle_dispatch.index("prtouch_task();"))
 
     def test_adc_and_cs1237_poll_limits_match_object(self):
         self.assertIn("PR_ADC_POLL_LIMIT 502", SOURCE)
+        self.assertIn("#if CONFIG_CLOCK_FREQ == 120000000", SOURCE)
         self.assertIn("PR_CS_CFG_READY_TICKS 14400000u", SOURCE)
         self.assertIn("PR_CS_DATA_READY_TICKS 600000u", SOURCE)
+        self.assertIn("PR_CS_CFG_READY_TICKS timer_from_us(120000u)",
+                      SOURCE)
+        self.assertIn("PR_CS_DATA_READY_TICKS timer_from_us(5000u)",
+                      SOURCE)
         self.assertNotIn("timer_from_us(PR_CS_", SOURCE)
         self.assertIn(
             "while (gpio_adc_sample(pr_pres.adc_pin[channel]) && --retries)",

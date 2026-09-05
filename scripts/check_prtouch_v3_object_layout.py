@@ -82,7 +82,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     rebuilt = parser.add_mutually_exclusive_group(required=True)
     rebuilt.add_argument("--rebuilt", type=Path,
-                         help="重建的非 LTO prtouch_v3_compat.o")
+                         help="重建的非 LTO prtouch_v3.o")
     rebuilt.add_argument("--rebuilt-elf", type=Path,
                          help="重建的 LTO 最终 ELF；只核对持久状态布局")
     parser.add_argument("--factory", type=Path,

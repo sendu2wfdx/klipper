@@ -61,3 +61,7 @@ endif
 
 flash: $(OUT)klipper.bin
 	@echo "GD32 automatic flashing is not enabled; use the board bootloader."
+
+ifeq ($(CONFIG_GD32_CREALITY_BOOTLOADER),y)
+include src/gd32/creality_bootloader.mk
+endif

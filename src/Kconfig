@@ -288,16 +288,16 @@ config WANT_TRIGGER_ANALOG
 endmenu
 
 choice
-    prompt "Archived Creality PRTouch MCU protocol"
+    prompt "Creality PRTouch MCU protocol"
     optional
     depends on HAVE_GPIO && HAVE_GPIO_ADC
 
-config WANT_PRTOUCH_V2_COMPAT
-    bool "Support official Creality PRTouch V2 MCU protocol"
+config HAVE_PRTOUCH_V1_V2
+    bool "Support Creality PRTouch V1/V2 MCU protocol"
     select WANT_ADC
 
-config WANT_PRTOUCH_V3_COMPAT
-    bool "Support archived Creality PRTouch V3 MCU protocol"
+config HAVE_PRTOUCH_V3
+    bool "Support Creality PRTouch V3 MCU protocol"
     select WANT_ADC
 
 endchoice

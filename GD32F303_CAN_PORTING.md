@@ -71,10 +71,12 @@ F303 当前 APB1 为60 MHz。默认 `CONFIG_CANBUS_FREQUENCY=1000000` 时：
 
 ```powershell
 cd "D:\Documents\ChatGPT\创想三维\mcu\Official_Klipper_GD32"
-.\build-gd32.ps1 f009-can
+wsl.exe -d T113 -- bash -lc "cd '/mnt/d/Documents/ChatGPT/创想三维/mcu/Official_Klipper_GD32' && cp config/f009_gd32f303_can_pb8_pb9.config /tmp/f009-can.config && make KCONFIG_CONFIG=/tmp/f009-can.config OUT=build-gd32/development/can/ clean && make KCONFIG_CONFIG=/tmp/f009-can.config OUT=build-gd32/development/can/ olddefconfig && make KCONFIG_CONFIG=/tmp/f009-can.config OUT=build-gd32/development/can/ -j32"
 ```
 
-产物：`build-gd32/f009-can/klipper.bin`
+正式一键入口不会发布 CAN 镜像。开发者应把
+`config/f009_gd32f303_can_pb8_pb9.config` 复制为临时 `.config` 后，在独立输出目录
+执行 Klipper 的 `olddefconfig` 和 `make`；不要改写三份正式配置。
 
 2026-08-31 最近一次回归构建结果：
 

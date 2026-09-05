@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Non-moving PRTouch V3 compatibility smoke test on a Windows COM port."""
+"""Non-moving PRTouch V3 smoke test on a Windows COM port."""
 
 import argparse
 import sys

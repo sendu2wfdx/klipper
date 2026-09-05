@@ -1,4 +1,4 @@
-// Clean-room compatibility implementation of the Creality PRTouch V3 MCU ABI.
+// Clean-room implementation of the Creality PRTouch V3 MCU ABI.
 // The command surface, buffer/filter layout, delta stream and synchronization
 // behavior are reconstructed from the GPL-covered V71 MCU object.
 // Copyright (C) 2026
@@ -20,14 +20,17 @@
 #define PR_ZIP_LIMIT 41
 #define PR_VERSION 71
 #define PR_INVALID INT32_MIN
-// These are deliberately fixed MCU tick counts, not time conversions.  The
-// factory V71 object contains the literal thresholds 14400000 and 599999;
-// therefore a transaction is allowed at 14400000/600000 ticks respectively.
-// The V57 nozzle reports a 120MHz clock but still uses those literals.  Scaling
-// them through timer_from_us() changes the CS1237 ready timeout by one sixth
-// and can clock conversion data before DOUT is ready.
+// The V71 object uses 14400000/600000 ticks on its 120MHz target: 120ms and
+// 5ms.  Keep those exact constants for the factory clock (and therefore its
+// exact generated code), while preserving the same physical time on other
+// Klipper timer frequencies.
+#if CONFIG_CLOCK_FREQ == 120000000
 #define PR_CS_CFG_READY_TICKS 14400000u
 #define PR_CS_DATA_READY_TICKS 600000u
+#else
+#define PR_CS_CFG_READY_TICKS timer_from_us(120000u)
+#define PR_CS_DATA_READY_TICKS timer_from_us(5000u)
+#endif
 #define PR_ADC_POLL_LIMIT 502
 #define PR_CS_DELAY_LOOPS 10u
 #define PR_FACTORY_LOOP \
@@ -98,6 +101,9 @@ struct pr_apax {
 #if UINTPTR_MAX == UINT32_MAX
 #define PR_LAYOUT_ASSERT(name, condition) \
     typedef char pr_layout_assert_##name[(condition) ? 1 : -1]
+#define PR_FACTORY_GPIO_LAYOUT                                      \
+    (sizeof(struct gpio_out) == 4 && sizeof(struct gpio_in) == 1   \
+     && sizeof(struct gpio_adc) == 4)
 PR_LAYOUT_ASSERT(zip_size, sizeof(struct pr_zip) == 160);
 PR_LAYOUT_ASSERT(zip_data_start_offset,
                  offsetof(struct pr_zip, data_start) == 12);
@@ -120,8 +126,10 @@ PR_LAYOUT_ASSERT(buffer_filtered_offset,
                  offsetof(struct pr_pres_buf, filtered) == 2128);
 PR_LAYOUT_ASSERT(buffer_hftr_offset,
                  offsetof(struct pr_pres_buf, hftr) == 3152);
-PR_LAYOUT_ASSERT(pres_size, sizeof(struct pr_pres) == 4900);
-PR_LAYOUT_ASSERT(step_size, sizeof(struct pr_step) == 540);
+PR_LAYOUT_ASSERT(pres_size,
+                 !PR_FACTORY_GPIO_LAYOUT || sizeof(struct pr_pres) == 4900);
+PR_LAYOUT_ASSERT(step_size,
+                 !PR_FACTORY_GPIO_LAYOUT || sizeof(struct pr_step) == 540);
 PR_LAYOUT_ASSERT(apax_size, sizeof(struct pr_apax) == 1944);
 PR_LAYOUT_ASSERT(pres_buffer_offset,
                  offsetof(struct pr_pres, buffer) == 20);
@@ -140,13 +148,17 @@ PR_LAYOUT_ASSERT(pres_pins_offset,
 PR_LAYOUT_ASSERT(pres_swap_offset,
                  offsetof(struct pr_pres, swp_out) == 4840);
 PR_LAYOUT_ASSERT(pres_adc_offset,
-                 offsetof(struct pr_pres, adc_pin) == 4848);
+                 !PR_FACTORY_GPIO_LAYOUT
+                 || offsetof(struct pr_pres, adc_pin) == 4848);
 PR_LAYOUT_ASSERT(pres_clk_offset,
-                 offsetof(struct pr_pres, clk_pin) == 4864);
+                 !PR_FACTORY_GPIO_LAYOUT
+                 || offsetof(struct pr_pres, clk_pin) == 4864);
 PR_LAYOUT_ASSERT(pres_sdi_offset,
-                 offsetof(struct pr_pres, sdi_pin) == 4880);
+                 !PR_FACTORY_GPIO_LAYOUT
+                 || offsetof(struct pr_pres, sdi_pin) == 4880);
 PR_LAYOUT_ASSERT(pres_sdo_offset,
-                 offsetof(struct pr_pres, sdo_pin) == 4884);
+                 !PR_FACTORY_GPIO_LAYOUT
+                 || offsetof(struct pr_pres, sdo_pin) == 4884);
 PR_LAYOUT_ASSERT(step_buffer_offset,
                  offsetof(struct pr_step, ticks) == 24);
 PR_LAYOUT_ASSERT(step_swap_offset,
@@ -159,6 +171,7 @@ PR_LAYOUT_ASSERT(apax_interval_offset,
                  offsetof(struct pr_apax, zip_interval) == 1296);
 PR_LAYOUT_ASSERT(apax_delay_offset,
                  offsetof(struct pr_apax, delay_tick) == 1936);
+#undef PR_FACTORY_GPIO_LAYOUT
 #undef PR_LAYOUT_ASSERT
 #endif
 

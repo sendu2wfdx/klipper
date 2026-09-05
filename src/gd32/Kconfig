@@ -22,6 +22,18 @@ config GD32_APP_VERSION
         following six bytes are reserved for the factory CRC16 and image
         length written by host_crc16.
 
+config GD32_CREALITY_BOOTLOADER
+    bool "Build reconstructed Creality-compatible 12 KiB bootloader"
+    depends on GD32_FLASH_START_3000
+    depends on MACH_GD32F303XB || MACH_GD32F303XC || MACH_GD32E230X8
+    default n
+    help
+        Build the independently reconstructed UART bootloader together with
+        the Klipper application. It implements the recovered factory update
+        protocol and 12 KiB layout, but it is not Creality's original binary
+        or source code. Keep it disabled when retaining the bootloader already
+        present on a production board.
+
 config GD32_USB_DOUBLE_BUFFER_TX
     bool "Experimental double-buffered USB IN endpoint"
     depends on GD32_USB
@@ -131,7 +143,7 @@ choice
     config GD32_FLASH_START_2000
         bool "8 KiB bootloader (Katapult)"
     config GD32_FLASH_START_3000
-        bool "12 KiB original bootloader"
+        bool "12 KiB bootloader offset (factory-compatible layout)"
     config GD32_FLASH_START_5000
         bool "20 KiB bootloader"
     config GD32_FLASH_START_7000

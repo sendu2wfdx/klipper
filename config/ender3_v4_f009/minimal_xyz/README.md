@@ -37,7 +37,7 @@ Z 归位必须在 PRTouch V3 的 CS1237 数据、PA15/PC7 联锁极性和触发�
 
 ## 离线验证
 
-离线测试使用主板 `build-gd32/f009-main/klipper.dict` 和调平板
-`build-gd32/e230-pa910/klipper.dict`。从原机 64 KiB GD32E230完整 Flash备份内嵌的
+离线测试使用主板 `build-gd32/main/klipper.dict` 和床板
+`build-gd32/bed/klipper.dict`。从原机 64 KiB GD32E230完整 Flash备份内嵌的
 Klipper字典已直接恢复出 `RESERVE_PINS_serial=PA9,PA10`、`SERIAL_BAUD=230400`，因此
 F009量产调平板固定使用 USART0 PA9/PA10；PA2/PA3只保留为平台开发变体。

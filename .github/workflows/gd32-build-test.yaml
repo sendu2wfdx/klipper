@@ -1,5 +1,5 @@
-# Build and test the downstream GD32 targets on every branch update.
-name: GD32 build and tests
+# Build and test the four Ender-3 V4 MCU targets on every branch update.
+name: Ender-3 V4 build and tests
 
 on:
   push:
@@ -16,12 +16,14 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
       - name: Setup cache
         uses: actions/cache@v5
         with:
           path: ci_cache
-          key: ${{ runner.os }}-gd32-${{ hashFiles('scripts/ci-install.sh') }}
+          key: ${{ runner.os }}-ender3-v4-${{ hashFiles('scripts/ci-install.sh') }}
 
       - name: Prepare build environment
         run: ./scripts/ci-install.sh
@@ -31,32 +33,43 @@ jobs:
           ci_build/python-env/bin/pip install pytest
           ci_build/python-env/bin/python -m pytest -q -p no:cacheprovider test/test_*.py
 
-      - name: Build GD32 and Linux-process targets
+      - name: Validate reconstructed bootloader source
+        run: |
+          make -C src/bootloader profiles hosttest
+          ci_build/python-env/bin/python -m pytest -q -p no:cacheprovider src/bootloader/tests
+
+      - name: Build three MCU applications and run native Linux smoke test
         env:
           BUILD_ROOT: ${{ runner.temp }}/gd32-build
           JOBS: 2
+        run: sh ./scripts/build-ender3-v4.sh
+
+      - name: Build the same three applications at the Katapult offset
+        env:
+          APP_LAYOUT: katapult
+          BUILD_ROOT: ${{ runner.temp }}/gd32-katapult-gate
+          JOBS: 2
+        run: sh ./scripts/build-ender3-v4.sh main nozzle bed
+
+      - name: Load Ender-3 V4 configurations
         run: >-
-          sh ./scripts/build-gd32-matrix.sh
-          f009-main
-          f009-main-factory
-          f009-toolhead
-          f009-toolhead-factory
-          f009-can
-          e230-pa23
-          e230-pa910
-          e230-pa910-factory
-          k1-leveling-v2
-          test-cc-serial
-          test-cc-usb
-          test-cc-usb-dbuf
-          test-cc-usb-dbuf-prtouch-v2-adc
-          linuxprocess
+          ci_build/python-env/bin/python scripts/test_klippy.py
+          -d ${{ runner.temp }}
+          test/ender3_v4/full.test
+          test/ender3_v4/minimal_xyz.test
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gd32-firmware
+          name: ender3-v4-source-builds
           path: |
-            ${{ runner.temp }}/gd32-build/**/klipper.bin
-            ${{ runner.temp }}/gd32-build/**/klipper.elf
-            ${{ runner.temp }}/gd32-build/**/klipper.dict
+            ${{ runner.temp }}/gd32-build/main/klipper.bin
+            ${{ runner.temp }}/gd32-build/main/klipper.dict
+            ${{ runner.temp }}/gd32-build/main/bootloader.bin
+            ${{ runner.temp }}/gd32-build/nozzle/klipper.bin
+            ${{ runner.temp }}/gd32-build/nozzle/klipper.dict
+            ${{ runner.temp }}/gd32-build/nozzle/bootloader.bin
+            ${{ runner.temp }}/gd32-build/bed/klipper.bin
+            ${{ runner.temp }}/gd32-build/bed/klipper.dict
+            ${{ runner.temp }}/gd32-build/bed/bootloader.bin
+            ${{ runner.temp }}/gd32-build/reports/build-report.txt

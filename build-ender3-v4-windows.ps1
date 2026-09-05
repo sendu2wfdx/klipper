@@ -7,6 +7,10 @@ $Bash = 'D:\Program Files\Git\bin\bash.exe'
 $MakeBin = 'D:\make-3.81\bin'
 $ArmBin = 'D:\RT-ThreadStudio\platform\env_released\env\tools\gnu_gcc\arm_gcc\mingw\bin'
 $Python = 'D:\anaconda3\python.exe'
+$Layout = if ($env:APP_LAYOUT) { $env:APP_LAYOUT } else { 'factory' }
+if ($Layout -notin @('factory', 'katapult')) {
+    throw "APP_LAYOUT must be 'factory' or 'katapult'"
+}
 $BuildRootName = if ($env:GD32_BUILD_ROOT) {
     $env:GD32_BUILD_ROOT
 } else {
@@ -34,17 +38,26 @@ $RootMsys = Convert-ToMsysPath $Root
 $MakeMsys = Convert-ToMsysPath $MakeBin
 $ArmMsys = Convert-ToMsysPath $ArmBin
 $PythonMsys = Convert-ToMsysPath $Python
-$Targets = ($args -join ' ')
+$RequestedTargets = @($args)
+if ($RequestedTargets -contains 'linux') {
+    throw "The Linux MCU must be built in T113 WSL, not the Windows fallback"
+}
+$Targets = if ($RequestedTargets.Count) {
+    $RequestedTargets -join ' '
+} else {
+    'main nozzle bed'
+}
 $Command = @"
 cd '$RootMsys' && \
 export PATH='$MakeMsys`:$ArmMsys':`"`$PATH`" && \
 export PYTHON='$PythonMsys' LTO_FLAGS='-flto=1' JOBS=2 && \
 export BUILD_ROOT=`"`$PWD/$BuildRootName`" && \
 export KLIPPER_BUILD_VERSION='gd32-source-rebuild' && \
-sh scripts/build-gd32-matrix.sh $Targets
+export APP_LAYOUT='$Layout' && \
+sh scripts/build-ender3-v4.sh $Targets
 "@
 
 & $Bash -lc $Command
 if ($LASTEXITCODE -ne 0) {
-    throw "Windows GD32 build failed with exit code $LASTEXITCODE"
+    throw "Windows Ender-3 V4 build failed with exit code $LASTEXITCODE"
 }

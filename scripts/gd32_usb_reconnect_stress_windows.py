@@ -16,7 +16,7 @@ import serial
 sys.path.insert(0, "klippy")
 import msgproto
 
-from gd32_prtouch_compat_probe_windows import transact
+from gd32_prtouch_v3_probe_windows import transact
 
 
 def clock_forward(previous, current):
