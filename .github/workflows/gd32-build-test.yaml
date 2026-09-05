@@ -40,7 +40,7 @@ jobs:
 
       - name: Build three MCU applications and run native Linux smoke test
         env:
-          BUILD_ROOT: ${{ runner.temp }}/gd32-build
+          BUILD_ROOT: ${{ runner.temp }}/build-gd32
           JOBS: 2
         run: sh ./scripts/build-ender3-v4.sh
 
@@ -63,13 +63,13 @@ jobs:
         with:
           name: ender3-v4-source-builds
           path: |
-            ${{ runner.temp }}/gd32-build/main/klipper.bin
-            ${{ runner.temp }}/gd32-build/main/klipper.dict
-            ${{ runner.temp }}/gd32-build/main/bootloader.bin
-            ${{ runner.temp }}/gd32-build/nozzle/klipper.bin
-            ${{ runner.temp }}/gd32-build/nozzle/klipper.dict
-            ${{ runner.temp }}/gd32-build/nozzle/bootloader.bin
-            ${{ runner.temp }}/gd32-build/bed/klipper.bin
-            ${{ runner.temp }}/gd32-build/bed/klipper.dict
-            ${{ runner.temp }}/gd32-build/bed/bootloader.bin
-            ${{ runner.temp }}/gd32-build/reports/build-report.txt
+            ${{ runner.temp }}/build-gd32/main/klipper.bin
+            ${{ runner.temp }}/build-gd32/main/klipper.dict
+            ${{ runner.temp }}/build-gd32/main/bootloader.bin
+            ${{ runner.temp }}/build-gd32/nozzle/klipper.bin
+            ${{ runner.temp }}/build-gd32/nozzle/klipper.dict
+            ${{ runner.temp }}/build-gd32/nozzle/bootloader.bin
+            ${{ runner.temp }}/build-gd32/bed/klipper.bin
+            ${{ runner.temp }}/build-gd32/bed/klipper.dict
+            ${{ runner.temp }}/build-gd32/bed/bootloader.bin
+            ${{ runner.temp }}/build-gd32/reports/build-report.txt
