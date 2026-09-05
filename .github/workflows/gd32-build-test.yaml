@@ -36,7 +36,7 @@ jobs:
           BUILD_ROOT: ${{ runner.temp }}/gd32-build
           JOBS: 2
         run: >-
-          ./scripts/build-gd32-matrix.sh
+          sh ./scripts/build-gd32-matrix.sh
           f009-main
           f009-main-factory
           f009-toolhead
