@@ -112,7 +112,8 @@ def run(command):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     default_object = Path(__file__).resolve().parents[2] / \
-        "Hi_Klipper" / "src" / "prtouch_v3.o"
+        "External_References" / "CrealityOfficial-Hi_Klipper" / \
+        "src" / "prtouch_v3.o"
     parser.add_argument("--factory", type=Path, default=default_object)
     parser.add_argument("--readelf", default="arm-none-eabi-readelf")
     parser.add_argument("--objdump", default="arm-none-eabi-objdump")
