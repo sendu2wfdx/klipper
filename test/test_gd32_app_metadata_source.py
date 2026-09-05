@@ -117,11 +117,11 @@ def test_formal_profiles_build_the_reconstructed_12k_bootloader():
 def test_release_workflow_excludes_native_linux_smoke_artifacts():
     upload = WORKFLOW[WORKFLOW.index("- name: Upload firmware artifacts"):]
     for profile in ("main", "nozzle", "bed"):
-        assert f"gd32-build/{profile}/klipper.bin" in upload
-        assert f"gd32-build/{profile}/klipper.dict" in upload
-        assert f"gd32-build/{profile}/bootloader.bin" in upload
-    assert "gd32-build/linux/" not in upload
-    assert "gd32-build/**" not in upload
+        assert f"build-gd32/{profile}/klipper.bin" in upload
+        assert f"build-gd32/{profile}/klipper.dict" in upload
+        assert f"build-gd32/{profile}/bootloader.bin" in upload
+    assert "build-gd32/linux/" not in upload
+    assert "build-gd32/**" not in upload
 
 
 def test_factory_e230_target_matches_recovered_prtouch_board_layout():
