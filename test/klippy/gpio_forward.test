@@ -1,0 +1,7 @@
+# Exercise public CS1237 probing and GPIO forwarding in the same printer.
+DICTIONARY atmega2560.dict
+CONFIG gpio_forward.cfg
+G28
+SET_GPIO_FORWARD NAME=x_endstop ENABLE=1
+SET_GPIO_FORWARD NAME=x_endstop ENABLE=0
+PROBE

@@ -1,5 +1,10 @@
 Welcome to the Klipper project!
 
+This `creality-load-cell` branch adds CS1237 sensor support and GPIO forwarding
+on top of `gd32-port`. Probing and bed mesh use upstream Klipper algorithms;
+no PRTouch implementation is included. See
+[CS1237 and GPIO forwarding](docs/CS1237_GPIO_Forward.md).
+
 [![Klipper](docs/img/klipper-logo-small.png)](https://www.klipper3d.org/)
 
 https://www.klipper3d.org/

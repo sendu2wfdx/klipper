@@ -20,7 +20,9 @@ jobs:
           sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi python3-pytest
 
       - name: Run GD32 source checks
-        run: python3 -m pytest -q -p no:cacheprovider test/test_gd32_*.py
+        run: >-
+          python3 -m pytest -q -p no:cacheprovider test/test_gd32_*.py
+          test/test_cs1237.py test/test_gpio_forward.py test/test_io_remap.py
 
       - name: Build GD32 example configurations
         env:
