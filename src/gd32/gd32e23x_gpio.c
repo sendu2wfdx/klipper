@@ -12,24 +12,24 @@ DECL_ENUMERATION_RANGE("pin","PB0",GPIO('B',0),16);
 DECL_ENUMERATION_RANGE("pin","PC0",GPIO('C',0),16);
 DECL_ENUMERATION_RANGE("pin","PF0",GPIO('F',0),16);
 
-uint32_t gpio_port_base[] = 
+uint32_t gpio_port_base[] =
 {
-		GPIOA,
-		GPIOB,
-		GPIOC,
-		0,
-		0,
-		GPIOF
+        GPIOA,
+        GPIOB,
+        GPIOC,
+        0,
+        0,
+        GPIOF
 };
 
-uint32_t gpio_pclk[] = 
+uint32_t gpio_pclk[] =
 {
-		RCU_GPIOA,
-		RCU_GPIOB,
-		RCU_GPIOC,
-		0,
-		0,
-		RCU_GPIOF
+        RCU_GPIOA,
+        RCU_GPIOB,
+        RCU_GPIOC,
+        0,
+        0,
+        RCU_GPIOF
 };
 #endif
 
@@ -42,56 +42,55 @@ gpio_port(uint8_t pin)
     return gpio_port_base[index];
 }
 
-
 uint32_t
 get_pclock_frequency(uint32_t periph_base)
 {
-	if(periph_base == 0)
-	{
-		return AHB_FREQ; 
-	}
-	else
-	{
-		return APB2_ADC_FREQ;
-	}
+    if(periph_base == 0)
+    {
+        return AHB_FREQ;
+    }
+    else
+    {
+        return APB2_ADC_FREQ;
+    }
 }
 
 
 uint32_t
 is_enable_pclock(uint32_t pclk)
 {
-	return RCU_REG_VAL(pclk) & BIT(RCU_BIT_POS(pclk));
+    return RCU_REG_VAL(pclk) & BIT(RCU_BIT_POS(pclk));
 }
 
 void
 enable_pclock(uint32_t pclk)
 {
-	RCU_REG_VAL(pclk) |= BIT(RCU_BIT_POS(pclk));
+    RCU_REG_VAL(pclk) |= BIT(RCU_BIT_POS(pclk));
 }
 
 
 void
 gpio_init_mode_set(uint32_t gpio, uint32_t mode, uint32_t pull_up_down)
 {
-	uint16_t i;
-    
-	uint32_t ctl, pupd;
-	
-	uint32_t pin = GPIO2BIT(gpio);
+    uint16_t i;
 
-	uint32_t port = GPIO2PORT(gpio);
-	uint32_t gpio_periph = gpio_port(gpio);
+    uint32_t ctl, pupd;
 
-	enable_pclock(gpio_pclk[port]);
+    uint32_t pin = GPIO2BIT(gpio);
+
+    uint32_t port = GPIO2PORT(gpio);
+    uint32_t gpio_periph = gpio_port(gpio);
+
+    enable_pclock(gpio_pclk[port]);
 
     ctl = GPIO_CTL(gpio_periph);
-    
-	pupd = GPIO_PUD(gpio_periph);
+
+    pupd = GPIO_PUD(gpio_periph);
 
     for(i = 0U;i < 16U;i++)
-	{
+    {
         if((1U << i) & pin)
-		{
+        {
             /* clear the specified pin mode bits */
             ctl &= ~GPIO_MODE_MASK(i);
             /* set the specified pin mode bits */
@@ -105,29 +104,29 @@ gpio_init_mode_set(uint32_t gpio, uint32_t mode, uint32_t pull_up_down)
     }
 
     GPIO_CTL(gpio_periph) = ctl;
-    
-	GPIO_PUD(gpio_periph) = pupd;
+
+    GPIO_PUD(gpio_periph) = pupd;
 }
 
 void
 gpio_init_output_options_set(uint32_t gpio, uint8_t otype)
 {
-	uint32_t speed = GPIO_OSPEED_50MHZ;
+    uint32_t speed = GPIO_OSPEED_50MHZ;
 
-	uint32_t pin = GPIO2BIT(gpio);
+    uint32_t pin = GPIO2BIT(gpio);
 
-	uint32_t gpio_periph = gpio_port(gpio);
+    uint32_t gpio_periph = gpio_port(gpio);
 
-	uint16_t i;
+    uint16_t i;
 
     uint32_t ospeed;
 
     if(GPIO_OTYPE_OD == otype)
-	{
+    {
         GPIO_OMODE(gpio_periph) |= (uint32_t)pin;
     }
-	else
-	{
+    else
+    {
         GPIO_OMODE(gpio_periph) &= (uint32_t)(~pin);
     }
 
@@ -135,9 +134,9 @@ gpio_init_output_options_set(uint32_t gpio, uint8_t otype)
     ospeed = GPIO_OSPD(gpio_periph);
 
     for(i = 0U;i < 16U;i++)
-	{
+    {
         if((1U << i) & pin)
-		{
+        {
             /* clear the specified pin output speed bits */
             ospeed &= ~GPIO_OSPEED_MASK(i);
             /* set the specified pin output speed bits */
@@ -153,172 +152,171 @@ void
 gpio_init_af_set(uint32_t gpio, uint32_t alt_func_num)
 {
     uint16_t i;
-    
-	uint32_t afrl, afrh;
-	
-	uint32_t gpio_periph = gpio_port(gpio);
-	
-	uint32_t pin = GPIO2BIT(gpio);
+
+    uint32_t afrl, afrh;
+
+    uint32_t gpio_periph = gpio_port(gpio);
+
+    uint32_t pin = GPIO2BIT(gpio);
 
     afrl = GPIO_AFSEL0(gpio_periph);
-    
-	afrh = GPIO_AFSEL1(gpio_periph);
+
+    afrh = GPIO_AFSEL1(gpio_periph);
 
     for(i = 0U;i < 8U;i++)
-	{
+    {
         if((1U << i) & pin)
-		{
+        {
             /* clear the specified pin alternate function bits */
             afrl &= ~GPIO_AFR_MASK(i);
-            
-			afrl |= GPIO_AFR_SET(i,alt_func_num);
+
+            afrl |= GPIO_AFR_SET(i,alt_func_num);
         }
     }
 
     for(i = 8U;i < 16U;i++)
-	{
+    {
         if((1U << i) & pin)
-		{
+        {
             /* clear the specified pin alternate function bits */
             afrh &= ~GPIO_AFR_MASK(i - 8U);
-            
-			afrh |= GPIO_AFR_SET(i - 8U,alt_func_num);
+
+            afrh |= GPIO_AFR_SET(i - 8U,alt_func_num);
         }
     }
 
     GPIO_AFSEL0(gpio_periph) = afrl;
-    
-	GPIO_AFSEL1(gpio_periph) = afrh;
+
+    GPIO_AFSEL1(gpio_periph) = afrh;
 }
 
 void
 gpio_out_reset(struct gpio_out g, uint8_t val)
 {
-	uint32_t port = GPIO2PORT(g.pin);
+    uint32_t port = GPIO2PORT(g.pin);
 
-	uint32_t pin = GPIO2BIT(g.pin);
-		
-	irqstatus_t flag = irq_save();
+    uint32_t pin = GPIO2BIT(g.pin);
 
-	// Preload the latch before switching the pin to output mode.
-	if(!val)
-	{
-		GPIO_BC(gpio_port_base[port]) = (uint32_t)pin;
-	}
-	else
-	{
-		GPIO_BOP(gpio_port_base[port]) = (uint32_t)pin;
-	}
-	gpio_init_output_options_set(g.pin, GPIO_OTYPE_PP);
-	gpio_init_mode_set(g.pin, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE);
+    irqstatus_t flag = irq_save();
 
-	irq_restore(flag);
+    // Preload the latch before switching the pin to output mode.
+    if(!val)
+    {
+        GPIO_BC(gpio_port_base[port]) = (uint32_t)pin;
+    }
+    else
+    {
+        GPIO_BOP(gpio_port_base[port]) = (uint32_t)pin;
+    }
+    gpio_init_output_options_set(g.pin, GPIO_OTYPE_PP);
+    gpio_init_mode_set(g.pin, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE);
 
-	return;
+    irq_restore(flag);
+
+    return;
 }
 
 struct gpio_out
 gpio_out_setup(uint8_t pin, uint8_t val)
 {
-	(void)gpio_port(pin);
-	
-	struct gpio_out g = {.pin = pin};
+    (void)gpio_port(pin);
 
-	gpio_out_reset(g,val);
+    struct gpio_out g = {.pin = pin};
 
-	return g;
+    gpio_out_reset(g,val);
+
+    return g;
 }
 
 void
 gpio_out_toggle_noirq(struct gpio_out g)
 {
-	uint32_t port = GPIO2PORT(g.pin);
+    uint32_t port = GPIO2PORT(g.pin);
 
-	uint32_t pin = GPIO2BIT(g.pin);
-	
- 	GPIO_TG(gpio_port_base[port]) = (uint32_t)pin;
-	
-	return;	
+    uint32_t pin = GPIO2BIT(g.pin);
+
+     GPIO_TG(gpio_port_base[port]) = (uint32_t)pin;
+
+    return;
 }
 
-void 
+void
 gpio_out_toggle(struct gpio_out g)
 {
-	irqstatus_t flag = irq_save();
-	
-	gpio_out_toggle_noirq(g);
+    irqstatus_t flag = irq_save();
 
-	irq_restore(flag);
+    gpio_out_toggle_noirq(g);
 
-	return;
+    irq_restore(flag);
+
+    return;
 }
 
-uint8_t 
+uint8_t
 gpio_out_read(uint8_t gpioIndx)
 {
-	uint32_t port = GPIO2PORT(gpioIndx);
+    uint32_t port = GPIO2PORT(gpioIndx);
 
-	uint32_t pin = GPIO2BIT(gpioIndx);
-	
-	return !!(GPIO_OCTL(gpio_port_base[port]) & pin);
+    uint32_t pin = GPIO2BIT(gpioIndx);
+
+    return !!(GPIO_OCTL(gpio_port_base[port]) & pin);
 }
 
 
-void 
+void
 gpio_out_write(struct gpio_out g, uint8_t val)
 {
-	uint32_t port = GPIO2PORT(g.pin);
+    uint32_t port = GPIO2PORT(g.pin);
 
-	uint32_t pin = GPIO2BIT(g.pin);
-	
-	if(!val)
-	{
-		GPIO_BC(gpio_port_base[port]) = (uint32_t)pin;
-	}
-	else
-	{
-		GPIO_BOP(gpio_port_base[port]) = (uint32_t)pin;
-	}
+    uint32_t pin = GPIO2BIT(g.pin);
 
-	return;
+    if(!val)
+    {
+        GPIO_BC(gpio_port_base[port]) = (uint32_t)pin;
+    }
+    else
+    {
+        GPIO_BOP(gpio_port_base[port]) = (uint32_t)pin;
+    }
+
+    return;
 }
 
 struct gpio_in
 gpio_in_setup(uint8_t pin, uint8_t pull_up)
 {
 
-	(void)gpio_port(pin);
-	
-	struct gpio_in g = {.pin = pin};
+    (void)gpio_port(pin);
 
-	gpio_in_reset(g,pull_up);
+    struct gpio_in g = {.pin = pin};
 
-	return g;
+    gpio_in_reset(g,pull_up);
+
+    return g;
 }
 
 void
 gpio_in_reset(struct gpio_in g, int8_t pull_up)
 {
-	uint32_t pp_pd = GPIO_PUPD_NONE;
-	if (pull_up > 0)
-		pp_pd = GPIO_PUPD_PULLUP;
-	else if (pull_up == 0)
-		pp_pd = GPIO_PUPD_PULLDOWN;
+    uint32_t pp_pd = GPIO_PUPD_NONE;
+    if (pull_up > 0)
+        pp_pd = GPIO_PUPD_PULLUP;
+    else if (pull_up == 0)
+        pp_pd = GPIO_PUPD_PULLDOWN;
 
-	irqstatus_t flag = irq_save();
+    irqstatus_t flag = irq_save();
 
-	gpio_init_mode_set(g.pin,GPIO_MODE_INPUT, pp_pd);
-	
-	irq_restore(flag);
+    gpio_init_mode_set(g.pin,GPIO_MODE_INPUT, pp_pd);
+
+    irq_restore(flag);
 }
 
 uint8_t
 gpio_in_read(struct gpio_in g)
 {
-	uint32_t port = GPIO2PORT(g.pin);
+    uint32_t port = GPIO2PORT(g.pin);
 
-	uint32_t pin = GPIO2BIT(g.pin);
+    uint32_t pin = GPIO2BIT(g.pin);
 
-	return (!!(GPIO_ISTAT(gpio_port_base[port]) & pin));
+    return (!!(GPIO_ISTAT(gpio_port_base[port]) & pin));
 }
-

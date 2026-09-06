@@ -19,7 +19,8 @@ DECL_CONSTANT_STR("BUS_PINS_spi1", "PB14,PB15,PB13");
 
 static const struct spi_info spi_bus[] = {
     { SPI0, RCU_SPI0, APB2_FREQ, GPIO('A', 6), GPIO('A', 7), GPIO('A', 5), 0 },
-    { SPI1, RCU_SPI1, APB1_FREQ, GPIO('B', 14), GPIO('B', 15), GPIO('B', 13), 0 },
+    { SPI1, RCU_SPI1, APB1_FREQ,
+      GPIO('B', 14), GPIO('B', 15), GPIO('B', 13), 0 },
 };
 
 static void

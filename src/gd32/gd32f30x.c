@@ -18,16 +18,16 @@
                                     }                                   \
                                 }while(0)
 
-void 
+void
 watchdog_init(void)
 {
-	uint8_t prescaler_div = FWDGT_PSC_DIV8;	// IRC40K / 8 = 5000
-	
-	uint16_t reload_value = 2500;           // 500ms
-   
-	uint32_t timeout = FWDGT_PSC_TIMEOUT;
-    
-	uint32_t flag_status = RESET;
+    uint8_t prescaler_div = FWDGT_PSC_DIV8;    // IRC40K / 8 = 5000
+
+    uint16_t reload_value = 2500;           // 500ms
+
+    uint32_t timeout = FWDGT_PSC_TIMEOUT;
+
+    uint32_t flag_status = RESET;
 
     /* enable write access to FWDGT_PSC,and FWDGT_RLD */
     FWDGT_CTL = FWDGT_WRITEACCESS_ENABLE;
@@ -37,8 +37,8 @@ watchdog_init(void)
         flag_status = FWDGT_STAT & FWDGT_STAT_PUD;
     } while((--timeout > 0U) && ((uint32_t)RESET != flag_status));
 
-    if((uint32_t)RESET != flag_status) 
-	{
+    if((uint32_t)RESET != flag_status)
+    {
         shutdown("watchdog initialize fail");
     }
 
@@ -46,14 +46,14 @@ watchdog_init(void)
     FWDGT_PSC = (uint32_t)prescaler_div;
 
     timeout = FWDGT_RLD_TIMEOUT;
-    
-	/* wait until the RUD flag to be reset */
+
+    /* wait until the RUD flag to be reset */
     do {
         flag_status = FWDGT_STAT & FWDGT_STAT_RUD;
     } while((--timeout > 0U) && ((uint32_t)RESET != flag_status));
 
-    if((uint32_t)RESET != flag_status) 
-	{
+    if((uint32_t)RESET != flag_status)
+    {
         shutdown("watchdog initialize fail");
     }
 
@@ -62,7 +62,7 @@ watchdog_init(void)
     /* reload the counter */
     FWDGT_CTL = FWDGT_KEY_RELOAD;
 
-	FWDGT_CTL = FWDGT_KEY_ENABLE;
+    FWDGT_CTL = FWDGT_KEY_ENABLE;
 }
 
 DECL_INIT(watchdog_init);
@@ -70,7 +70,7 @@ DECL_INIT(watchdog_init);
 void
 watchdog_task(void)
 {
-	FWDGT_CTL = FWDGT_KEY_RELOAD;
+    FWDGT_CTL = FWDGT_KEY_RELOAD;
 }
 
 DECL_TASK(watchdog_task);
@@ -78,7 +78,7 @@ DECL_TASK(watchdog_task);
 
 uint32_t SystemCoreClock = SYSTEM_CLOCK_PLL_HXTAL;
 
-static void 
+static void
 systemClock120mHxtal(void)
 {
     uint32_t timeout = 0U;
@@ -87,7 +87,7 @@ systemClock120mHxtal(void)
     /* enable HXTAL */
     RCU_CTL |= RCU_CTL_HXTALEN;
 
-    /* wait until HXTAL is stable or the startup time is longer than HXTAL_STARTUP_TIMEOUT */
+    /* wait until HXTAL is stable or the startup timeout is reached */
     do{
         timeout++;
         stab_flag = (RCU_CTL & RCU_CTL_HXTALSTB);
@@ -126,8 +126,10 @@ systemClock120mHxtal(void)
     RCU_CFG0 |= (RCU_PLLSRC_HXTAL_IRC48M | RCU_PLL_MUL30);
 
     /* CK_PREDIV0 = (CK_HXTAL)/5 *8 /10 = 4 MHz */
-    RCU_CFG1 &= ~(RCU_CFG1_PLLPRESEL | RCU_CFG1_PREDV0SEL | RCU_CFG1_PLL1MF | RCU_CFG1_PREDV1 | RCU_CFG1_PREDV0);
-    RCU_CFG1 |= (RCU_PLLPRESRC_HXTAL | RCU_PREDV0SRC_CKPLL1 | RCU_PLL1_MUL8 | RCU_PREDV1_DIV5 | RCU_PREDV0_DIV10);
+    RCU_CFG1 &= ~(RCU_CFG1_PLLPRESEL | RCU_CFG1_PREDV0SEL
+                  | RCU_CFG1_PLL1MF | RCU_CFG1_PREDV1 | RCU_CFG1_PREDV0);
+    RCU_CFG1 |= (RCU_PLLPRESRC_HXTAL | RCU_PREDV0SRC_CKPLL1
+                 | RCU_PLL1_MUL8 | RCU_PREDV1_DIV5 | RCU_PREDV0_DIV10);
 
     /* enable PLL1 */
     RCU_CTL |= RCU_CTL_PLL1EN;
@@ -167,7 +169,8 @@ systemInit(void)
 {
   /* FPU settings */
 #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
-    SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
+    /* set CP10 and CP11 full access */
+    SCB->CPACR |= ((3UL << 10*2) | (3UL << 11*2));
 #endif
     /* reset the RCU clock configuration to the default reset state */
     /* Set IRC8MEN bit */
@@ -175,7 +178,7 @@ systemInit(void)
     while(0U == (RCU_CTL & RCU_CTL_IRC8MSTB)){
     }
     RCU_MODIFY(0x50);
-    
+
     RCU_CFG0 &= ~RCU_CFG0_SCS;
 
 #if (defined(GD32F30X_HD) || defined(GD32F30X_XD))
@@ -185,19 +188,20 @@ systemInit(void)
     RCU_INT = 0x009f0000U;
 #elif defined(GD32F30X_CL)
     /* Reset HXTALEN, CKMEN, PLLEN, PLL1EN and PLL2EN bits */
-    RCU_CTL &= ~(RCU_CTL_PLLEN |RCU_CTL_PLL1EN | RCU_CTL_PLL2EN | RCU_CTL_CKMEN | RCU_CTL_HXTALEN);
+    RCU_CTL &= ~(RCU_CTL_PLLEN | RCU_CTL_PLL1EN | RCU_CTL_PLL2EN
+                 | RCU_CTL_CKMEN | RCU_CTL_HXTALEN);
     /* disable all interrupts */
     RCU_INT = 0x00ff0000U;
 #endif
 
     /* reset HXTALBPS bit */
     RCU_CTL &= ~(RCU_CTL_HXTALBPS);
-    
+
     /* Reset CFG0 and CFG1 registers */
     RCU_CFG0 = 0x00000000U;
     RCU_CFG1 = 0x00000000U;
 
-	systemClock120mHxtal();
+    systemClock120mHxtal();
 }
 
 
@@ -205,7 +209,7 @@ void
 armcm_main(void)
 {
         systemInit();
-        
+
         SCB->VTOR = (uint32_t)VectorTable;
 
     //CLOSE JTAG

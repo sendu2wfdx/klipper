@@ -22,7 +22,7 @@
 void
 watchdog_task(void)
 {
-	FWDGT_CTL = FWDGT_KEY_RELOAD;	
+    FWDGT_CTL = FWDGT_KEY_RELOAD;
 }
 
 DECL_TASK(watchdog_task);
@@ -30,70 +30,72 @@ DECL_TASK(watchdog_task);
 void
 watchdog_init(void)
 {
-	uint32_t timeout = FWDGT_PSC_TIMEOUT;
-   
-	uint32_t flag_status = RESET;
+    uint32_t timeout = FWDGT_PSC_TIMEOUT;
 
-	uint16_t reload_value = 2500;  			//500ms
+    uint32_t flag_status = RESET;
 
-	uint8_t prescaler_div = FWDGT_PSC_DIV8;
-	
-	uint32_t stb_cnt = 0U;
+    uint16_t reload_value = 2500;              //500ms
 
-	FlagStatus osci_stat = RESET;
+    uint8_t prescaler_div = FWDGT_PSC_DIV8;
 
-	RCU_REG_VAL(RCU_IRC40K) |= BIT(RCU_BIT_POS(RCU_IRC40K));
+    uint32_t stb_cnt = 0U;
 
-	while((RESET == osci_stat) && (OSC_STARTUP_TIMEOUT != stb_cnt))
-	{
-		osci_stat = (RCU_REG_VAL(RCU_FLAG_IRC40KSTB) & BIT(RCU_BIT_POS(RCU_FLAG_IRC40KSTB)));
-            
-		stb_cnt++;
-	}
-     
-	 /* check whether flag is set or not */
-    if(RESET == (RCU_REG_VAL(RCU_FLAG_IRC40KSTB) & BIT(RCU_BIT_POS(RCU_FLAG_IRC40KSTB))))
-	{
+    FlagStatus osci_stat = RESET;
+
+    RCU_REG_VAL(RCU_IRC40K) |= BIT(RCU_BIT_POS(RCU_IRC40K));
+
+    while((RESET == osci_stat) && (OSC_STARTUP_TIMEOUT != stb_cnt))
+    {
+        osci_stat = (RCU_REG_VAL(RCU_FLAG_IRC40KSTB)
+                     & BIT(RCU_BIT_POS(RCU_FLAG_IRC40KSTB)));
+
+        stb_cnt++;
+    }
+
+     /* check whether flag is set or not */
+    if(RESET == (RCU_REG_VAL(RCU_FLAG_IRC40KSTB)
+                 & BIT(RCU_BIT_POS(RCU_FLAG_IRC40KSTB))))
+    {
         shutdown("watchdog initialize fail");
     }
-  
+
     FWDGT_CTL = FWDGT_WRITEACCESS_ENABLE;
-  
-    do
-	{
-        flag_status = FWDGT_STAT & FWDGT_STAT_PUD;
-    
-	}while((--timeout > 0U) && ((uint32_t)RESET != flag_status));
-    
-    if ((uint32_t)RESET != flag_status)
-	{
-        shutdown("watchdog initialize fail");
-    }
-    
-    FWDGT_PSC = (uint32_t)prescaler_div;       
 
-    timeout = FWDGT_RLD_TIMEOUT;   
-	
-	flag_status = RESET;
-    
-	do
-	{
-        flag_status = FWDGT_STAT & FWDGT_STAT_RUD;
-    
-	}while((--timeout > 0U) && ((uint32_t)RESET != flag_status));
-   
+    do
+    {
+        flag_status = FWDGT_STAT & FWDGT_STAT_PUD;
+
+    }while((--timeout > 0U) && ((uint32_t)RESET != flag_status));
+
     if ((uint32_t)RESET != flag_status)
-	{
+    {
         shutdown("watchdog initialize fail");
     }
-	
+
+    FWDGT_PSC = (uint32_t)prescaler_div;
+
+    timeout = FWDGT_RLD_TIMEOUT;
+
+    flag_status = RESET;
+
+    do
+    {
+        flag_status = FWDGT_STAT & FWDGT_STAT_RUD;
+
+    }while((--timeout > 0U) && ((uint32_t)RESET != flag_status));
+
+    if ((uint32_t)RESET != flag_status)
+    {
+        shutdown("watchdog initialize fail");
+    }
+
     FWDGT_RLD = RLD_RLD(reload_value);
-    
+
     FWDGT_CTL = FWDGT_KEY_RELOAD;
 
-	FWDGT_CTL = FWDGT_KEY_ENABLE;
+    FWDGT_CTL = FWDGT_KEY_ENABLE;
 
-	return;
+    return;
 }
 
 DECL_INIT(watchdog_init);
@@ -109,7 +111,7 @@ static void systemClock72mHxtal(void)
     /* enable HXTAL */
     RCU_CTL0 |= RCU_CTL0_HXTALEN;
 
-    /* wait until HXTAL is stable or the startup time is longer than HXTAL_STARTUP_TIMEOUT */
+    /* wait until HXTAL is stable or the startup timeout is reached */
     do{
         timeout++;
         stab_flag = (RCU_CTL0 & RCU_CTL0_HXTALSTB);
@@ -120,9 +122,9 @@ static void systemClock72mHxtal(void)
         while(1){
         }
     }
-    
+
     FMC_WS = (FMC_WS & (~FMC_WS_WSCNT)) | WS_WSCNT_2;
-    
+
     /* HXTAL is stable */
     /* AHB = SYSCLK */
     RCU_CFG0 |= RCU_AHB_CKSYS_DIV1;
@@ -161,11 +163,14 @@ void systemInit (void)
 
     RCU_MODIFY(0x80);
     RCU_CFG0 &= ~RCU_CFG0_SCS;
-    RCU_CTL0 &= ~(RCU_CTL0_HXTALEN | RCU_CTL0_CKMEN | RCU_CTL0_PLLEN | RCU_CTL0_HXTALBPS);
+    RCU_CTL0 &= ~(RCU_CTL0_HXTALEN | RCU_CTL0_CKMEN | RCU_CTL0_PLLEN
+                  | RCU_CTL0_HXTALBPS);
     /* reset RCU */
-    RCU_CFG0 &= ~(RCU_CFG0_SCS | RCU_CFG0_AHBPSC | RCU_CFG0_APB1PSC | RCU_CFG0_APB2PSC |\
-                  RCU_CFG0_ADCPSC | RCU_CFG0_CKOUTSEL | RCU_CFG0_CKOUTDIV | RCU_CFG0_PLLDV);
-    RCU_CFG0 &= ~(RCU_CFG0_PLLSEL | RCU_CFG0_PLLMF | RCU_CFG0_PLLMF4 | RCU_CFG0_PLLDV);
+    RCU_CFG0 &= ~(RCU_CFG0_SCS | RCU_CFG0_AHBPSC | RCU_CFG0_APB1PSC
+                  | RCU_CFG0_APB2PSC | RCU_CFG0_ADCPSC | RCU_CFG0_CKOUTSEL
+                  | RCU_CFG0_CKOUTDIV | RCU_CFG0_PLLDV);
+    RCU_CFG0 &= ~(RCU_CFG0_PLLSEL | RCU_CFG0_PLLMF | RCU_CFG0_PLLMF4
+                  | RCU_CFG0_PLLDV);
     RCU_CFG1 &= ~(RCU_CFG1_PREDV);
     RCU_CFG2 &= ~(RCU_CFG2_USART0SEL | RCU_CFG2_ADCSEL);
     RCU_CFG2 &= ~RCU_CFG2_IRC28MDIV;
@@ -174,16 +179,14 @@ void systemInit (void)
     RCU_INT = 0x00000000U;
 
     /* configure system clock */
-	systemClock72mHxtal();
+    systemClock72mHxtal();
 }
-
 void
 armcm_main(void)
 {
-	systemInit();
+    systemInit();
 
-	SCB->VTOR = (uint32_t)VectorTable;
+    SCB->VTOR = (uint32_t)VectorTable;
 
-	sched_main();
+    sched_main();
 }
-
