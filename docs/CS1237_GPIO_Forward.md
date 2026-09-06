@@ -1,6 +1,6 @@
 # CS1237 with upstream Klipper probing
 
-This branch is based on `gd32-port`. It adds a CS1237 sensor backend and
+The `gd32-port` branch includes a CS1237 sensor backend and
 MCU-local GPIO forwarding. It does not contain Creality PRTouch, its private
 protocol, probing algorithm, PA15 pressure handshake, or bed-mesh traversal.
 
