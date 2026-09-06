@@ -72,10 +72,9 @@ on completion or G-code error. Use `enable: False` for homing-only forwarding.
 
 Runtime control: `SET_GPIO_FORWARD NAME=x_endstop ENABLE=0|1`.
 
-The old `[io_remap]` / `SET_IOREMAP S=0|1` configuration syntax is supported
-by an adapter for this GPIO function only. It does not load PRTouch or make
-this firmware binary-compatible with Creality firmware. Do not configure
-both interfaces for the same pair of pins.
+Only the `[gpio_forward name]` interface is provided on this branch.
+Use matching host and MCU firmware for the `config_gpio_forward` and
+`set_gpio_forward` protocol commands.
 
 ## Firmware boundary
 
@@ -86,9 +85,9 @@ suitable for the factory update tool; deployment is a separate task.
 
 ## Software validation
 
-2026-09-06: 16 host tests passed, covering CS1237 sample/error reporting,
-analog trigger attachment, GPIO polarity, X homing restoration and legacy
-GPIO configuration compatibility. GD32F303xB and ATmega2560 compiled and
+2026-09-06: 13 host tests passed after removal of the legacy GPIO interface,
+covering CS1237 sample/error reporting, analog trigger attachment, GPIO
+polarity, X homing restoration and error recovery. GD32F303xB and ATmega2560 compiled and
 linked. The GD32 dictionary includes CS1237/analog-trigger/forwarding commands
 and no PRTouch commands. Two Klippy integration tests passed, including
 `G28`, `PROBE`, `BED_MESH_CALIBRATE` and GPIO runtime control. These tests
