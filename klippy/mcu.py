@@ -567,15 +567,6 @@ class MCU_adc:
         self._unpack_from = struct.Struct('<H').unpack_from
     def get_mcu(self):
         return self._mcu
-    def setup_trigger_analog(self, trigger_analog_oid):
-        # Called from MCU_trigger_analog's config callback, after this ADC's
-        # earlier config callback has allocated its oid.
-        if self._oid is None:
-            raise self._mcu.get_printer().config_error(
-                "ADC trigger configured before ADC oid allocation")
-        self._mcu.add_config_cmd(
-            "analog_in_attach_trigger_analog oid=%d trigger_analog_oid=%d"
-            % (self._oid, trigger_analog_oid), is_init=True)
     def setup_adc_sample(self, report_time, sample_time=0., sample_count=1,
                          batch_num=1, minval=0., maxval=1.,
                          range_check_count=0):
@@ -646,9 +637,7 @@ class MCU_adc:
         if self._callback is not None:
             self._callback([(last_read_time, last_value)])
     def _handle_analog_in_state(self, params):
-        raw_values = params['values']
-        values = [self._unpack_from(raw_values, pos)[0]
-                  for pos in range(0, len(raw_values), 2)]
+        values = self._unpack_from(params['values'])
         next_clock = self._mcu.clock32_to_clock64(params['next_clock'])
         ctpt = self._mcu.clock_to_print_time
         num = len(values)

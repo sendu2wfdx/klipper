@@ -1,2 +1,0 @@
-CONFIG ../../config/ender3_v4_f009/printer.cfg
-DICTIONARY build-gd32/main/klipper.dict nozzle_mcu=build-gd32/nozzle/klipper.dict bed_mcu=build-gd32/bed/klipper.dict rpi=build-gd32/linux/klipper.dict

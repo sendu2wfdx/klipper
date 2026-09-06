@@ -43,8 +43,9 @@ i2c_gpio_setup(const struct i2c_info *ii)
 {
 #if CONFIG_MACH_GD32F30X
     enable_pclock(RCU_AF);
-    gpio_pin_remap_config(GPIO_I2C0_REMAP,
-                          ii->i2c == I2C0 && ii->alternate ? ENABLE : DISABLE);
+    if (ii->i2c == I2C0)
+        gpio_pin_remap_config(GPIO_I2C0_REMAP,
+                              ii->alternate ? ENABLE : DISABLE);
     gpio_peripheral(ii->scl_pin, 3, 0);
     gpio_peripheral(ii->sda_pin, 3, 0);
 #else

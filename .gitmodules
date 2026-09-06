@@ -1,4 +1,0 @@
-[submodule "src/bootloader"]
-	path = src/bootloader
-	url = https://github.com/sendu2wfdx/creality-gd32-factory-bootloader-compat.git
-	branch = main

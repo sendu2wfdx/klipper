@@ -249,21 +249,7 @@ run_tasks(void)
                 // Sleep processor (only run timers) until tasks woken
                 SchedStatus.tasks_status = SchedStatus.tasks_busy = TS_IDLE;
                 do {
-#if CONFIG_HAVE_PRTOUCH_V1_V2 || CONFIG_HAVE_PRTOUCH_V3
-                    // Factory K1 V1/V2 and F009 V3 continuously poll their
-                    // shared prtouch_task() entry while ordinary Klipper would
-                    // sleep.  The factory protocol objects do not register a
-                    // DECL_TASK entry, so keep this as their only dispatcher.
-                    irq_enable();
-                    // Software-timer targets (Linux process and simulator)
-                    // dispatch pending timers from irq_poll(); Cortex-M leaves
-                    // it empty, so this does not alter the factory MCU loop.
-                    irq_poll();
-                    extern void prtouch_task(void);
-                    prtouch_task();
-#else
                     irq_wait();
-#endif
                 } while (SchedStatus.tasks_status != TS_REQUESTED);
             }
             irq_enable();

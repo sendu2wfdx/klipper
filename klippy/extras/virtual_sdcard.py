@@ -28,7 +28,6 @@ class VirtualSD:
         self.must_pause_work = self.cmd_from_sd = False
         self.next_file_position = 0
         self.work_timer = None
-        self.continue_print = False
         # Error handling
         gcode_macro = self.printer.load_object(config, 'gcode_macro')
         aio = self.printer.load_object(config, 'aio_executor')
@@ -135,7 +134,6 @@ class VirtualSD:
     def do_cancel(self):
         if self.current_file is not None:
             self.do_pause()
-            self.printer.send_event("virtual_sdcard:cancel", self)
             self.current_file.close()
             self.current_file = None
             self.print_stats.note_cancel()
@@ -168,10 +166,6 @@ class VirtualSD:
         if filename[0] == '/':
             filename = filename[1:]
         self._load_file(gcmd, filename, check_subdirs=True)
-        self.continue_print = bool(gcmd.get_int(
-            "ISCONTINUEPRINT", 0, minval=0, maxval=1))
-        self.printer.send_event("virtual_sdcard:prepare_print", self,
-                                self.continue_print)
         self.do_resume()
     def cmd_M20(self, gcmd):
         # List SD card
@@ -253,16 +247,6 @@ class VirtualSD:
             self.work_timer = None
             return self.reactor.NEVER
         self.print_stats.note_start()
-        try:
-            self.printer.send_event("virtual_sdcard:print_start", self)
-        except Exception as e:
-            logging.exception("virtual_sdcard print-start hook")
-            self.work_timer = None
-            self.cmd_from_sd = False
-            self.print_stats.note_error(str(e))
-            self.printer.send_event(
-                "virtual_sdcard:print_end", self, "error")
-            return self.reactor.NEVER
         gcode_mutex = self.gcode.get_mutex()
         partial_input = ""
         lines = []
@@ -314,7 +298,6 @@ class VirtualSD:
                 break
             self.cmd_from_sd = False
             self.file_position = self.next_file_position
-            self.printer.send_event("virtual_sdcard:gcode_line", self, line)
             # Do we need to skip around?
             if self.next_file_position != next_file_position:
                 try:
@@ -330,14 +313,10 @@ class VirtualSD:
         self.cmd_from_sd = False
         if error_message is not None:
             self.print_stats.note_error(error_message)
-            outcome = "error"
         elif self.current_file is not None:
             self.print_stats.note_pause()
-            outcome = "paused"
         else:
             self.print_stats.note_complete()
-            outcome = "complete"
-        self.printer.send_event("virtual_sdcard:print_end", self, outcome)
         return self.reactor.NEVER
 
 def load_config(config):

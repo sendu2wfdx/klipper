@@ -22,30 +22,9 @@ SECTIONS
         _text_vectortable_start = .;
         KEEP(*(.vector_table))
         _text_vectortable_end = .;
-#if !CONFIG_MACH_GD32
-        *(.text .text.*)
-        *(.rodata .rodata*)
-#endif
-    } > rom
-
-#if CONFIG_MACH_GD32
-    /* The factory GD32 bootloader reads version/CRC/length at fixed
-     * application offsets.  host_crc16 writes bytes 0x20c..0x211 after
-     * objcopy, so executable code must never be linked across them. */
-    ASSERT(_text_vectortable_end <= ORIGIN(rom) + 0x200,
-           "GD32 vector table overlaps application metadata")
-    .gd32_app_metadata ORIGIN(rom) + 0x200 : {
-        _gd32_app_metadata_start = .;
-        KEEP(*(.gd32_app_metadata))
-        _gd32_app_metadata_end = .;
-    } > rom
-    ASSERT(SIZEOF(.gd32_app_metadata) == 0x12,
-           "GD32 application metadata must be exactly 18 bytes")
-    .text_body : {
         *(.text .text.*)
         *(.rodata .rodata*)
     } > rom
-#endif
 
     . = ALIGN(4);
     _data_flash = .;

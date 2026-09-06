@@ -30,11 +30,7 @@
   #define WSIZE 4
 #endif
 
-// GD32F30x routes double-buffered bulk transfer completion to the dedicated
-// high-priority USB interrupt. Keep the low-priority interrupt for reset,
-// control, and ordinary endpoint events.
 #define USBx_IRQn USBD_LP_CAN0_RX0_IRQn
-#define USBx_HP_IRQn USBD_HP_CAN0_TX_IRQn
 
 // The stm32g0 has slightly different register names
 #if CONFIG_MACH_STM32G0
@@ -250,52 +246,10 @@ usb_read_bulk_out(void *data, uint_fast8_t max_len)
     return count;
 }
 
-static uint32_t bulk_in_push_pos, bulk_in_pop_flag;
-#define BI_START 2
-
-// Send bulk packet to host with the public Klipper double-buffer race model.
-// GD32 uses the same DTOG/SW_BUF contract as the classic STM32 USBD block.
-// bulk_in_pop_flag lets the IRQ complete a software buffer handoff that raced
-// with the hardware completion, instead of associating a stale CTR_TX with a
-// later one-packet "pending" counter.
-static int_fast8_t
-usb_send_bulk_in_double_buffer(void *data, uint_fast8_t len)
-{
-    if (readl(&bulk_in_pop_flag))
-        // No buffer space available
-        return -1;
-    uint32_t ep = USB_CDC_EP_BULK_IN;
-    uint32_t bipp = bulk_in_push_pos, bufnum = bipp & 1;
-    bulk_in_push_pos = bipp ^ 1;
-    btable_write_packet(ep, bufnum, data, len);
-    writel(&bulk_in_pop_flag, USB_EP_DTOG_RX);
-
-    // Check if hardware needs to be notified
-    uint32_t epr = USB_EPR(ep);
-    if (epr_is_dbuf_blocking(epr) && readl(&bulk_in_pop_flag)) {
-        writel(&bulk_in_pop_flag, 0);
-        if (unlikely(bipp & BI_START)) {
-            // Two packets are always sent when starting in double
-            // buffering mode, so wait for second packet before starting.
-            if (bipp == (BI_START | 1)) {
-                bulk_in_push_pos = 0;
-                writel(&bulk_in_pop_flag, USB_EP_KIND); // Dummy flag
-                USB_EPR(ep) = calc_epr_bits(epr, USB_EPTX_STAT,
-                                            USB_EP_TX_VALID);
-            }
-        } else {
-            USB_EPR(ep) = calc_epr_bits(epr, 0, 0) | USB_EP_DTOG_RX;
-        }
-    }
-    return len;
-}
-
 // Send bulk usb packet to host
 int_fast8_t
 usb_send_bulk_in(void *data, uint_fast8_t len)
 {
-    if (CONFIG_GD32_USB_DOUBLE_BUFFER_TX)
-        return usb_send_bulk_in_double_buffer(data, len);
     uint32_t ep = USB_CDC_EP_BULK_IN, epr = USB_EPR(ep);
     if ((epr & USB_EPTX_STAT) != USB_EP_TX_NAK)
         // No buffer space available
@@ -363,10 +317,6 @@ usb_set_configure(void)
     bulk_out_pop_count = 0;
     USB_EPR(ep) = calc_epr_bits(USB_EPR(ep), USB_EPRX_STAT, USB_EP_RX_VALID);
 
-    if (CONFIG_GD32_USB_DOUBLE_BUFFER_TX) {
-        bulk_in_push_pos = BI_START;
-        writel(&bulk_in_pop_flag, 0);
-    }
 }
 
 
@@ -392,12 +342,7 @@ usb_reset(void)
     bulk_out_push_flag = USB_EP_DTOG_TX;
 
     ep = USB_CDC_EP_BULK_IN;
-    uint32_t bi_epr_flags = USB_CDC_EP_BULK_IN | USB_EP_BULK | USB_EP_TX_NAK;
-    if (CONFIG_GD32_USB_DOUBLE_BUFFER_TX) {
-        bi_epr_flags |= USB_EP_KIND;
-        bulk_in_pop_flag = USB_EP_DTOG_RX;
-    }
-    epr_reset_config(ep, bi_epr_flags);
+    epr_reset_config(ep, USB_CDC_EP_BULK_IN | USB_EP_BULK | USB_EP_TX_NAK);
 
     USB->CNTR = USB_CNTR_CTRM | USB_CNTR_RESETM;
     USB->DADDR = USB_DADDR_EF;
@@ -417,12 +362,8 @@ USB_IRQHandler(void)
             bulk_out_push_flag = 0;
             usb_notify_bulk_out();
         } else if (ep == USB_CDC_EP_BULK_IN) {
-            uint32_t ne = calc_epr_bits(epr, USB_EP_CTR_RX | USB_EP_CTR_TX, 0);
-            if (CONFIG_GD32_USB_DOUBLE_BUFFER_TX) {
-                ne |= bulk_in_pop_flag;
-                bulk_in_pop_flag = 0;
-            }
-            USB_EPR(ep) = ne;
+            USB_EPR(ep) = calc_epr_bits(
+                epr, USB_EP_CTR_RX | USB_EP_CTR_TX, 0);
             usb_notify_bulk_in();
         } else if (ep == 0) {
             USB_EPR(ep) = calc_epr_bits(epr, USB_EP_CTR_RX | USB_EP_CTR_TX, 0);
@@ -462,7 +403,7 @@ usb_init(void)
 
     // A debugger-initiated core reset does not reliably clear the GD32F303
     // USBD endpoint/PMA state. Pulse the dedicated peripheral reset before
-    // rebuilding the buffer table, in particular for double-buffered EPs.
+    // rebuilding the endpoint buffer table.
     RCU_APB1RST |= RCU_APB1RST_USBDRST;
     (void)RCU_APB1RST;
     RCU_APB1RST &= ~RCU_APB1RST_USBDRST;
@@ -482,7 +423,5 @@ usb_init(void)
     USB->CNTR = USB_CNTR_RESETM;
     USB->ISTR = 0;
     armcm_enable_irq(USB_IRQHandler, USBx_IRQn, 1);
-    if (CONFIG_GD32_USB_DOUBLE_BUFFER_TX)
-        armcm_enable_irq(USB_IRQHandler, USBx_HP_IRQn, 1);
 }
 DECL_INIT(usb_init);

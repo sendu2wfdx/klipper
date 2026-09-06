@@ -495,9 +495,6 @@ def file_version():
     return ver
 
 def build_version(extra, cleanbuild):
-    override = os.environ.get("KLIPPER_BUILD_VERSION", "").strip()
-    if override:
-        return override + extra
     version = git_version()
     if not version:
         cleanbuild = False
@@ -519,9 +516,7 @@ def tool_versions(tools):
     success = 0
     for tool in tools:
         # Extract first line from "tool --version" output
-        output = check_output("%s --version" % (tool,))
-        lines = output.splitlines()
-        verstr = lines[0] if lines else ""
+        verstr = check_output("%s --version" % (tool,)).split('\n')[0]
         # Check if this tool looks like a binutils program
         isbinutils = 0
         if verstr.startswith('GNU '):

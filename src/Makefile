@@ -2,7 +2,7 @@
 
 src-y += sched.c command.c basecmd.c debugcmds.c
 src-$(CONFIG_HAVE_GPIO) += initial_pins.c gpiocmds.c stepper.c endstop.c \
-    trsync.c io_remap.c
+    trsync.c
 src-$(CONFIG_WANT_ADC) += adccmds.c
 src-$(CONFIG_WANT_SPI) += spicmds.c
 src-$(CONFIG_WANT_I2C) += i2ccmds.c
@@ -24,11 +24,6 @@ src-$(CONFIG_WANT_BMI160) += sensor_bmi160.c
 src-$(CONFIG_WANT_MPU9250) += sensor_mpu9250.c
 src-$(CONFIG_WANT_ICM20948) += sensor_icm20948.c
 src-$(CONFIG_WANT_HX71X) += sensor_hx71x.c
-src-$(CONFIG_WANT_CS1237) += sensor_cs1237.c
-src-$(CONFIG_HAVE_PRTOUCH_V1_V2) += prtouch_v2.c
-src-$(CONFIG_HAVE_PRTOUCH_V3) += prtouch_v3.c
-src-$(CONFIG_WANT_CREALITY_485_CODEC) += creality_485_codec.c
-src-$(CONFIG_WANT_CREALITY_485_SLAVE) += creality_485_slave.c
 src-$(CONFIG_WANT_ADS1220) += sensor_ads1220.c
 src-$(CONFIG_WANT_ADS131M0X) += sensor_ads131m0x.c
 src-$(CONFIG_WANT_LDC1612) += sensor_ldc1612.c

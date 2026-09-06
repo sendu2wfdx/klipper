@@ -24,7 +24,7 @@ CFLAGS_klipper.elf += --specs=nano.specs --specs=nosys.specs
 CFLAGS_klipper.elf += -T $(OUT)src/generic/armcm_link.ld
 $(OUT)klipper.elf: $(OUT)src/generic/armcm_link.ld
 
-src-y += gd32/app_metadata.c generic/armcm_boot.c generic/armcm_irq.c
+src-y += generic/armcm_boot.c generic/armcm_irq.c
 src-y += generic/armcm_reset.c generic/crc16_ccitt.c
 src-$(CONFIG_MACH_GD32F30X) += gd32/gd32f30x.c gd32/gd32f30x_gpio.c
 src-$(CONFIG_MACH_GD32F30X) += generic/armcm_timer.c
@@ -36,32 +36,15 @@ src-$(CONFIG_WANT_SPI) += gd32/spi.c
 src-$(CONFIG_WANT_I2C) += gd32/i2c.c
 src-$(CONFIG_SERIAL) += gd32/serial.c generic/serial_irq.c
 src-$(CONFIG_USBSERIAL) += gd32/usbfs.c gd32/chipid.c generic/usb_cdc.c
-src-$(CONFIG_GD32_CREALITY_485_UART) += gd32/creality_485_uart.c
-
 canbus-src-y := gd32/can.c gd32/chipid.c generic/canserial.c
 canbus-src-y += generic/canbus.c ../lib/fast-hash/fasthash.c
 src-$(CONFIG_CANSERIAL) += $(canbus-src-y)
 
 target-y += $(OUT)klipper.bin
 
-$(OUT)host_crc16: tool/host_crc16.c
-	@echo "  Building GD32 image CRC tool"
-	$(Q)gcc $< -o $@
-
-ifeq ($(CONFIG_GD32_FLASH_START_2000),y)
 $(OUT)klipper.bin: $(OUT)klipper.elf
-	@echo "  Creating Katapult application binary $@"
-	$(Q)$(OBJCOPY) -O binary $< $@
-else
-$(OUT)klipper.bin: $(OUT)klipper.elf $(OUT)host_crc16
 	@echo "  Creating binary $@"
 	$(Q)$(OBJCOPY) -O binary $< $@
-	$(Q)$(OUT)host_crc16 $@
-endif
 
 flash: $(OUT)klipper.bin
 	@echo "GD32 automatic flashing is not enabled; use the board bootloader."
-
-ifeq ($(CONFIG_GD32_CREALITY_BOOTLOADER),y)
-include src/gd32/creality_bootloader.mk
-endif

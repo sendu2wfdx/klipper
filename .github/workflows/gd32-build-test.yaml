@@ -1,10 +1,7 @@
-# Build and test the four Ender-3 V4 MCU targets on every branch update.
-name: Ender-3 V4 build and tests
+name: GD32 platform build
 
 on:
   push:
-    branches:
-      - gd32-f009
   pull_request:
   workflow_dispatch:
 
@@ -12,64 +9,29 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  gd32:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5
-        with:
-          submodules: recursive
 
-      - name: Setup cache
-        uses: actions/cache@v5
-        with:
-          path: ci_cache
-          key: ${{ runner.os }}-ender3-v4-${{ hashFiles('scripts/ci-install.sh') }}
-
-      - name: Prepare build environment
-        run: ./scripts/ci-install.sh
-
-      - name: Run downstream unit tests
+      - name: Install toolchain
         run: |
-          ci_build/python-env/bin/pip install pytest
-          ci_build/python-env/bin/python -m pytest -q -p no:cacheprovider test/test_*.py
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi python3-pytest
 
-      - name: Validate reconstructed bootloader source
-        run: |
-          make -C src/bootloader profiles hosttest
-          ci_build/python-env/bin/python -m pytest -q -p no:cacheprovider src/bootloader/tests
+      - name: Run GD32 source checks
+        run: python3 -m pytest -q -p no:cacheprovider test/test_gd32_*.py
 
-      - name: Build three MCU applications and run native Linux smoke test
+      - name: Build GD32 example configurations
         env:
           BUILD_ROOT: ${{ runner.temp }}/build-gd32
           JOBS: 2
-        run: sh ./scripts/build-ender3-v4.sh
-
-      - name: Build the same three applications at the Katapult offset
-        env:
-          APP_LAYOUT: katapult
-          BUILD_ROOT: ${{ runner.temp }}/gd32-katapult-gate
-          JOBS: 2
-        run: sh ./scripts/build-ender3-v4.sh main nozzle bed
-
-      - name: Load Ender-3 V4 configurations
-        run: >-
-          ci_build/python-env/bin/python scripts/test_klippy.py
-          -d ${{ runner.temp }}
-          test/ender3_v4/full.test
-          test/ender3_v4/minimal_xyz.test
+        run: sh scripts/build-gd32-platform.sh
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ender3-v4-source-builds
+          name: gd32-firmware
           path: |
-            ${{ runner.temp }}/build-gd32/main/klipper.bin
-            ${{ runner.temp }}/build-gd32/main/klipper.dict
-            ${{ runner.temp }}/build-gd32/main/bootloader.bin
-            ${{ runner.temp }}/build-gd32/nozzle/klipper.bin
-            ${{ runner.temp }}/build-gd32/nozzle/klipper.dict
-            ${{ runner.temp }}/build-gd32/nozzle/bootloader.bin
-            ${{ runner.temp }}/build-gd32/bed/klipper.bin
-            ${{ runner.temp }}/build-gd32/bed/klipper.dict
-            ${{ runner.temp }}/build-gd32/bed/bootloader.bin
-            ${{ runner.temp }}/build-gd32/reports/build-report.txt
+            ${{ runner.temp }}/build-gd32/*/klipper.bin
+            ${{ runner.temp }}/build-gd32/*/klipper.dict
