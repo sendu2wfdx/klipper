@@ -14,7 +14,7 @@
 #include "sched.h" // sched_shutdown
 
 DECL_CONSTANT("ADC_MAX", 4095);
-#if CONFIG_MACH_GD32F425_Q2
+#if CONFIG_MACH_GD32F425
 DECL_CONSTANT_STR("MCU_TEMPERATURE_TYPE", "gd32f425");
 #endif
 
@@ -111,7 +111,7 @@ gpio_adc_setup(uint32_t pin)
     }
 
     if (pin == ADC_TEMPERATURE_PIN) {
-#if CONFIG_MACH_GD32F425_Q2
+#if CONFIG_MACH_GD32F425
         // GD32F425 specifies at least 17.1us for temperature sampling.
         adc->SMPR1 = ((adc->SMPR1 & ~ADC_SMPR1_SMP16_Msk)
                       | (7 << ADC_SMPR1_SMP16_Pos));
