@@ -18,13 +18,13 @@ while the motors are controlled by the main MCU:
 ```text
                   SOURCE MCU                         MOTION MCU
           ┌────────────────────────┐          ┌────────────────────────┐
-X endstop ──→ input_x_pin           │          │                        │
-Y endstop ──→ input_y_pin           │          │                        │
-Z endstop ──→ input_z_pin           │          │                        │
+X endstop─┼─→ input_x_pin          │          │                        │
+Y endstop─┼─→ input_y_pin          │          │                        │
+Z endstop─┼─→ input_z_pin          │          │                        │
           │          │             │          │                        │
           │   Select ONE input     │          │                        │
           │          ↓             │ ONE wire │                        │
-          │      output_pin ───────┼──────────┼──→ receive_pin         │
+          │      output_pin ───────┼──────────┼─→ receive_pin          │
           │                        │          │          ↓             │
           │                        │          │ Stop homing motor(s)   │
           └────────────────────────┘          └────────────────────────┘
