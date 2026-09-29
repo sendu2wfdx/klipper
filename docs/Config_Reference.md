@@ -5355,7 +5355,7 @@ data_ready_pin:
 
 Forward one selected endstop or load-cell trigger to another MCU over a
 shared GPIO wire. See [Endstop Bridge](Endstop_Bridge.md) for wiring,
-sequential homing requirements and validation.
+sequential homing requirements and limitations.
 
 ```ini
 [endstop_bridge sync]

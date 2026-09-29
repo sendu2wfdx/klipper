@@ -181,34 +181,11 @@ Before using the bridge, verify pin polarity and both wire levels with
 motors disabled. Then test each axis separately at low speed with clearance
 and an operator ready to stop the printer.
 
-## Limitations and validation
+## Limitations
 
 The bridge is not a safety-rated link. A wire break or sender power loss
 after the connection check may prevent a trigger from reaching the receiver.
 Host coordination and communication watchdogs remain necessary.
-
-Offline validation includes host unit tests, a firmware C test harness with
-simulated hardware, AVR compilation, and Klippy homing, probing and bed-mesh
-integration tests, including a configuration with more than three inputs.
-
-On 2026-09-30 the operator reported successful physical validation of
-Endstop Bridge, CS1237 and the GD32 port on an Ender-3 V4 / F009 using a
-private combined build, including XYZ homing and bed probing. That machine
-routes X and the Z pressure trigger over the shared wire; Y remains a local
-mainboard endstop. This is not a physical test of three digital switches
-sharing one wire. The new consolidated configuration syntax is validated
-offline separately; it has not been deployed to that printer yet.
-
-The commissioning record also contains intermittent host timing and driver
-UART faults and a pressure-range trip after increasing speeds. Successful
-functional testing is not a quantified latency or long-duration reliability
-claim, nor validation of every pressure/speed setting. Such measurements
-and broader hardware coverage remain pending.
-
-Developers can run the offline suite with
-`sh scripts/test-endstop-bridge.sh`. It requires the Klippy Python
-dependencies, a host C compiler with AddressSanitizer/UndefinedBehaviorSanitizer,
-and an AVR toolchain. Simulated tests are not a physical wiring test.
 
 ## Related implementations
 
