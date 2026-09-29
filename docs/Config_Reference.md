@@ -5354,8 +5354,16 @@ data_ready_pin:
 ### [load_cell_probe]
 Load Cell Probe. This combines the functionality of a [probe] and a [load_cell].
 
+Optional
+[shared GPIO trigger forwarding](Endstop_Bridge.md), configured with
+`[endstop_bridge name]`, `[endstop_bridge_input name]` and the probe's
+`trigger_bridge` option, provides a hardware trigger path between MCUs.
+
 ```
 [load_cell_probe]
+#trigger_bridge:
+#   Name of an endstop_bridge for MCU-local hardware stop signaling.
+#   Omit to retain native synchronization. See Endstop_Bridge.md.
 sensor_type:
 #   This must be one of the supported bulk ADC sensor types and support
 #   load cell endstops on the mcu.
