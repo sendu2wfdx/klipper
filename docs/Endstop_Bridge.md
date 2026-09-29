@@ -16,7 +16,7 @@ Consider a printer with X, Y and Z switches connected to a toolhead MCU,
 while the motors are controlled by the main MCU:
 
 ```text
-                 toolhead mcu                         motion mcu
+                 toolhead mcu                          main mcu
           +------------------------+          +------------------------+
 X endstop-+-> input_x_pin          |          |                        |
 Y endstop-+-> input_y_pin          |          |                        |
