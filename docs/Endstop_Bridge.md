@@ -16,18 +16,18 @@ Consider a printer with X, Y and Z switches connected to a toolhead MCU,
 while the motors are controlled by the main MCU:
 
 ```text
-                  toolheadmcu                         motionmcu
-          ┌────────────────────────┐          ┌────────────────────────┐
-X endstop─┼─→ input_x_pin          │          │                        │
-Y endstop─┼─→ input_y_pin          │          │                        │
-Z endstop─┼─→ input_z_pin          │          │                        │
-          │          │             │          │                        │
-          │   Select ONE input     │          │                        │
-          │          ↓             │ ONE wire │                        │
-          │      output_pin ───────┼──────────┼─→ receive_pin          │
-          │                        │          │          ↓             │
-          │                        │          │ Stop homing motor(s)   │
-          └────────────────────────┘          └────────────────────────┘
+                 toolhead mcu                         motion mcu
+          +------------------------+          +------------------------+
+X endstop-+-> input_x_pin          |          |                        |
+Y endstop-+-> input_y_pin          |          |                        |
+Z endstop-+-> input_z_pin          |          |                        |
+          |           |            |          |                        |
+          |   Select ONE input     |          |                        |
+          |           v            | ONE wire |                        |
+          |      output_pin -------+----------+-> receive_pin          |
+          |                        |          |           v            |
+          |                        |          | Stop homing motor(s)   |
+          +------------------------+          +------------------------+
 ```
 
 For an X homing move:
