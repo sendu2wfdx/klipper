@@ -63,34 +63,38 @@ MCU and stepper settings and do not duplicate existing sections.
 
 ```ini
 [endstop_bridge sync]
+input_x_pin: ^!toolhead:PB0
+input_y_pin: ^!toolhead:PB1
+input_z_pin: ^!toolhead:PB2
 output_pin: !toolhead:PA15
 receive_pin: ^!PC7
 
-[endstop_bridge_input x]
-bridge: sync
-input_pin: ^!toolhead:PB0
-
-[endstop_bridge_input y]
-bridge: sync
-input_pin: ^!toolhead:PB1
-
-[endstop_bridge_input z]
-bridge: sync
-input_pin: ^!toolhead:PB2
-
 [stepper_x]
-endstop_pin: endstop_bridge_sync:x
+endstop_pin: bridge:sync:x
 
 [stepper_y]
-endstop_pin: endstop_bridge_sync:y
+endstop_pin: bridge:sync:y
 
 [stepper_z]
-endstop_pin: endstop_bridge_sync:z
+endstop_pin: bridge:sync:z
 ```
 
 Here, `sync` names the shared connection, and `x`, `y` and `z` name
 its selectable inputs. `!` inverts a pin's logical level and `^` enables
 an input pull-up. Do not add these modifiers to the virtual endstop names.
+
+The option format is `input_<name>_pin`. Input names contain lowercase
+letters, digits and underscores; they are labels, not a fixed XYZ list.
+For example, add `input_aux_pin: ^!toolhead:PB3` and reference it as
+`bridge:sync:aux`. Each input must use its own source GPIO. Bridge names
+contain letters, digits, underscores or hyphens. List inputs first, then
+the output and receiver, to make the signal direction easy to follow;
+option order does not change behavior.
+
+Only this consolidated syntax is supported. Older separate input sections
+must be merged into the bridge and their virtual pin references updated
+before upgrading Klippy. Update the configuration and host code together;
+the MCU command protocol is unchanged by this configuration simplification.
 
 Home the axes in separate moves: `G28 X`, then `G28 Y`, then `G28 Z`.
 A combined `G28` is suitable only if the printer's homing sequence uses
@@ -100,15 +104,14 @@ when they need to monitor multiple endstops simultaneously.
 
 ### Optional sampling settings
 
-The defaults can be overridden in the corresponding sections:
+Normal configurations need none of these options. Advanced users can
+override them in the bridge section (sender settings apply to all its
+digital inputs):
 
 ```ini
 [endstop_bridge sync]
-# ... output_pin and receive_pin ...
+# ... input_<name>_pin, output_pin and receive_pin ...
 poll_interval: 0.000050
-
-[endstop_bridge_input x]
-# ... bridge and input_pin ...
 period: 0.000050
 filter_count: 2
 ```
@@ -130,7 +133,7 @@ A native Klipper `load_cell_probe` can use the same bridge as the digital
 inputs. For example, X and Y can use switches while Z uses a pressure probe.
 
 Keep the bridge and X/Y inputs from the example above. Omit the digital
-`[endstop_bridge_input z]` section, and merge these settings into an
+`input_z_pin` option, and merge these settings into an
 otherwise configured and calibrated load-cell probe:
 
 ```ini
@@ -168,7 +171,11 @@ Do not connect an actuator or another device that could react dangerously
 to these test levels.
 
 `QUERY_ENDSTOPS` reads the individual digital inputs without changing
-the selected source. It does not verify the bridge wire.
+the selected source. It reads each registered input's current logical GPIO
+level, not its homing filter history, and does not verify the bridge wire.
+The load-cell probe does not implement `QUERY_PROBE` in this version.
+Its virtual Z endstop may report `open` as a placeholder, which must not be
+interpreted as a measurement of pressure or proof that contact is absent.
 
 Before using the bridge, verify pin polarity and both wire levels with
 motors disabled. Then test each axis separately at low speed with clearance
@@ -182,8 +189,21 @@ Host coordination and communication watchdogs remain necessary.
 
 Offline validation includes host unit tests, a firmware C test harness with
 simulated hardware, AVR compilation, and Klippy homing, probing and bed-mesh
-integration tests. **Physical printer validation and measurements of latency
-and reliability under host load are still pending.**
+integration tests, including a configuration with more than three inputs.
+
+On 2026-09-30 the operator reported successful physical validation of
+Endstop Bridge, CS1237 and the GD32 port on an Ender-3 V4 / F009 using a
+private combined build, including XYZ homing and bed probing. That machine
+routes X and the Z pressure trigger over the shared wire; Y remains a local
+mainboard endstop. This is not a physical test of three digital switches
+sharing one wire. The new consolidated configuration syntax is validated
+offline separately; it has not been deployed to that printer yet.
+
+The commissioning record also contains intermittent host timing and driver
+UART faults and a pressure-range trip after increasing speeds. Successful
+functional testing is not a quantified latency or long-duration reliability
+claim, nor validation of every pressure/speed setting. Such measurements
+and broader hardware coverage remain pending.
 
 Developers can run the offline suite with
 `sh scripts/test-endstop-bridge.sh`. It requires the Klippy Python

@@ -3,14 +3,101 @@ import pathlib
 import sys
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).parents[1] / 'klippy'))
 from extras.endstop_bridge import (EndstopBridge, HardwareAnalogTrigger,
-                                     LocalEndstop)
-from extras.endstop_bridge_input import EndstopBridgeInput
+                                     LocalEndstop, EndstopBridgeInput)
 from extras.trigger_analog import MCU_trigger_analog
 import mcu
+import pins
+
+
+class ConfigTests(unittest.TestCase):
+    def make_config(self, **overrides):
+        options = dict(output_pin='!sender:PA15', receive_pin='^!PC7',
+                       input_x_pin='^sender:PB0', input_y_pin='^sender:PB1',
+                       input_z_pin='^sender:PB2', input_aux_pin='^sender:PB3')
+        options.update(overrides)
+        ppins = pins.PrinterPins()
+        sender, receiver = Mock(), Mock()
+        sender.create_oid.side_effect = iter(range(100))
+        sender.seconds_to_clock.side_effect = lambda value: int(value * 1000000)
+        ppins.register_chip('sender', sender)
+        ppins.register_chip('mcu', receiver)
+        printer = Mock()
+        printer.lookup_object.side_effect = {'pins': ppins, 'gcode': Mock()}.__getitem__
+        config = Mock()
+        config.error = ValueError
+        config.get_printer.return_value = printer
+        config.get_name.return_value = 'endstop_bridge sync'
+        config.get.side_effect = options.__getitem__
+        config.get_prefix_options.side_effect = lambda prefix: [
+            name for name in options if name.startswith(prefix)]
+        config.getfloat.side_effect = lambda name, default, **kw: options.get(name, default)
+        config.getint.side_effect = lambda name, default, **kw: options.get(name, default)
+        return config, ppins, sender
+
+    def build(self, **options):
+        config, ppins, sender = self.make_config(**options)
+        with patch.object(EndstopBridge, 'new_receiver', return_value=Mock()):
+            bridge = EndstopBridge(config)
+        return bridge, ppins, sender
+
+    def test_four_inputs_and_defaults(self):
+        bridge, ppins, sender = self.build()
+        self.assertEqual(set(bridge.inputs), {'x', 'y', 'z', 'aux'})
+        self.assertEqual(sender.create_oid.call_count, 5)
+        for name, route in bridge.inputs.items():
+            self.assertEqual(route.filter_count, 2)
+            self.assertEqual(route.period, .000050)
+            self.assertEqual(route.name, 'sync:' + name)
+            self.assertIs(ppins.setup_pin('endstop', 'bridge:sync:' + name), route)
+            route._build_config()
+        self.assertEqual(sender.add_config_cmd.call_count, 4)
+
+    def test_advanced_settings_apply_to_inputs(self):
+        bridge, unused, sender = self.build(period=.000100, filter_count=3)
+        for route in bridge.inputs.values():
+            self.assertEqual((route.period, route.filter_count), (.000100, 3))
+
+    def test_unknown_input_and_modifiers_rejected(self):
+        for desc in ('bridge:sync:missing', '!bridge:sync:x', '^bridge:sync:x'):
+            bridge, ppins, unused = self.build()
+            with self.assertRaises(ValueError):
+                ppins.setup_pin('endstop', desc)
+
+    def test_old_chip_not_registered(self):
+        bridge, ppins, unused = self.build()
+        with self.assertRaises(pins.error):
+            ppins.setup_pin('endstop', 'endstop_bridge_sync:x')
+
+    def test_input_on_wrong_mcu_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'share an MCU'):
+            self.build(input_aux_pin='PC8')
+
+    def test_empty_or_misspelled_input_rejected(self):
+        for option in ('input__pin', 'input_aux_pni'):
+            with self.assertRaisesRegex(ValueError, 'Expected input_'):
+                self.build(**{option: 'sender:PB4'})
+
+    def test_duplicate_source_pin_rejected(self):
+        with self.assertRaises(pins.error):
+            self.build(input_aux_pin='^sender:PB0')
+
+    def test_physical_pin_syntax_unchanged(self):
+        config, ppins, unused = self.make_config()
+        self.assertEqual(ppins.parse_pin('^!sender:PB0', True, True)['pin'], 'PB0')
+        self.assertEqual(ppins.parse_pin('PC7')['chip_name'], 'mcu')
+        with self.assertRaises(pins.error):
+            ppins.parse_pin('sender:bogus:PB0')
+
+    def test_multiple_bridge_namespaces(self):
+        bridge, ppins, unused = self.build()
+        other = Mock()
+        ppins.register_chip('bridge:other', other)
+        self.assertIs(ppins.parse_pin('bridge:sync:x')['chip'], bridge)
+        self.assertIs(ppins.parse_pin('bridge:other:x')['chip'], other)
 
 
 class BridgeTests(unittest.TestCase):
@@ -18,6 +105,7 @@ class BridgeTests(unittest.TestCase):
         config = Mock()
         config.get_name.return_value = 'endstop_bridge sync'
         config.getfloat.return_value = .000050
+        config.get_prefix_options.return_value = []
         pins, gcode, sender = Mock(), Mock(), Mock()
         config.get_printer.return_value.lookup_object.side_effect = {
             'pins': pins, 'gcode': gcode}.__getitem__
@@ -25,7 +113,7 @@ class BridgeTests(unittest.TestCase):
             {'chip': sender, 'pin': 'PA15', 'invert': 1},
             {'chip': Mock(), 'pin': 'PC7', 'invert': 1, 'pullup': 1}]
         bridge = EndstopBridge(config)
-        pins.register_chip.assert_called_once_with('endstop_bridge_sync', bridge)
+        pins.register_chip.assert_called_once_with('bridge:sync', bridge)
         gcode.register_mux_command.assert_called_once_with(
             'TEST_ENDSTOP_BRIDGE', 'BRIDGE', 'sync',
             bridge.cmd_TEST_ENDSTOP_BRIDGE)

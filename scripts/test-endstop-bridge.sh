@@ -7,7 +7,7 @@ JOBS=${JOBS:-2}
 mkdir -p "$BUILD_ROOT/avr" "$BUILD_ROOT/tests"
 cd "$ROOT"
 python3 -m unittest discover -s test -p test_endstop_bridge.py -v
-gcc -std=gnu11 -g -fsanitize=address,undefined \
+gcc -std=gnu11 -g -no-pie -fsanitize=address,undefined \
     -Itest/endstop_bridge test/endstop_bridge/harness.c \
     -o "$BUILD_ROOT/endstop-bridge-test"
 "$BUILD_ROOT/endstop-bridge-test"
